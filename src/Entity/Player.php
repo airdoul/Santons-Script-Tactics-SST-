@@ -6,16 +6,20 @@ use App\Repository\PlayerRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 
 #[ORM\Entity(repositoryClass: PlayerRepository::class)]
-class Player
+#[UniqueEntity(fields: ['email'], message: 'There is already an account with this email')]
+class Player implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, unique: true)]
     private ?string $email = null;
 
     #[ORM\Column(length: 64)]
@@ -50,6 +54,7 @@ class Player
         $this->teams = new ArrayCollection();
         $this->queueTickets = new ArrayCollection();
         $this->ratingHistories = new ArrayCollection();
+        $this->createdAt = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -65,7 +70,6 @@ class Player
     public function setEmail(string $email): static
     {
         $this->email = $email;
-
         return $this;
     }
 
@@ -77,7 +81,6 @@ class Player
     public function setUsername(string $username): static
     {
         $this->username = $username;
-
         return $this;
     }
 
@@ -89,7 +92,6 @@ class Player
     public function setPassword(string $password): static
     {
         $this->password = $password;
-
         return $this;
     }
 
@@ -101,8 +103,23 @@ class Player
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
         $this->createdAt = $createdAt;
-
         return $this;
+    }
+
+    // Méthodes UserInterface
+    public function getUserIdentifier(): string
+    {
+        return (string) $this->email;
+    }
+
+    public function getRoles(): array
+    {
+        return ['ROLE_USER'];
+    }
+
+    public function eraseCredentials(): void
+    {
+        // pour supp des données sensible si il faut
     }
 
     /**
@@ -119,19 +136,16 @@ class Player
             $this->teams->add($team);
             $team->setPlayer($this);
         }
-
         return $this;
     }
 
     public function removeTeam(Team $team): static
     {
         if ($this->teams->removeElement($team)) {
-            // set the owning side to null (unless already changed)
             if ($team->getPlayer() === $this) {
                 $team->setPlayer(null);
             }
         }
-
         return $this;
     }
 
@@ -149,19 +163,16 @@ class Player
             $this->queueTickets->add($queueTicket);
             $queueTicket->setPlayer($this);
         }
-
         return $this;
     }
 
     public function removeQueueTicket(QueueTicket $queueTicket): static
     {
         if ($this->queueTickets->removeElement($queueTicket)) {
-            // set the owning side to null (unless already changed)
             if ($queueTicket->getPlayer() === $this) {
                 $queueTicket->setPlayer(null);
             }
         }
-
         return $this;
     }
 
@@ -179,19 +190,16 @@ class Player
             $this->ratingHistories->add($ratingHistory);
             $ratingHistory->setPlayer($this);
         }
-
         return $this;
     }
 
     public function removeRatingHistory(RatingHistory $ratingHistory): static
     {
         if ($this->ratingHistories->removeElement($ratingHistory)) {
-            // set the owning side to null (unless already changed)
             if ($ratingHistory->getPlayer() === $this) {
                 $ratingHistory->setPlayer(null);
             }
         }
-
         return $this;
     }
 }

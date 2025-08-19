@@ -31,7 +31,8 @@ class DashboardController extends AbstractDashboardController
     public function configureMenuItems(): iterable
     {
         yield MenuItem::linkToDashboard('Dashboard', 'fa fa-home');
-        
+        yield MenuItem::linkToUrl('Retour à l\'accueil', 'fas fa-sign-out-alt', $this->generateUrl('app_homepage'));
+
         yield MenuItem::section('Gestion des joueurs');
         yield MenuItem::linkToCrud('Players', 'fas fa-users', Player::class);
         yield MenuItem::linkToCrud('Teams', 'fas fa-users-cog', Team::class);
