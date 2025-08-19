@@ -21,19 +21,22 @@ class PlayerCrudController extends AbstractCrudController
     public function configureFields(string $pageName): iterable
     {
         $fields = [
-            EmailField::new('email'),
             TextField::new('username'),
         ];
 
-        if (Crud::PAGE_INDEX === $pageName) {
+        // affichage des champs dans la page de la liste des joueurs
+        if (Crud::PAGE_INDEX === $pageName || Crud::PAGE_DETAIL === $pageName) {
             $fields[] = IdField::new('id');
+            $fields[] = EmailField::new('email');
             $fields[] = DateTimeField::new('createdAt');
             $fields[] = AssociationField::new('teams');
         }
 
-        if (Crud::PAGE_NEW === $pageName || Crud::PAGE_EDIT === $pageName) {
+        if (Crud::PAGE_NEW === $pageName) {
+            $fields[] = EmailField::new('email');
             $fields[] = TextField::new('password');
         }
+
 
         return $fields;
     }
