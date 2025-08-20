@@ -1,4 +1,4 @@
-// Debug continu pour le matchmaking - à retirer après la mise en place du système complet
+// debug a retiré après la mise en place du système complet
 console.log(' [DEBUG] Script debugMatch.js chargé !');
 
 let debugInterval;
@@ -12,11 +12,11 @@ function startDebugMode() {
     
     console.log(' [DEBUG] Démarrage du mode debug matchmaking...');
     isDebugActive = true;
-    
-    // Premier appel immédiat
+
+    // premier appel instantané
     fetchDebugInfo();
     
-    // Puis toutes les 10 secondes
+    // puis toutes les 10 sec
     debugInterval = setInterval(() => {
         fetchDebugInfo();
     }, 10000);
@@ -82,7 +82,7 @@ function fetchDebugInfo() {
         });
 }
 
-// Fonctions utilitaires pour le debug manuel
+// mode debug manuel
 window.matchmakingDebug = {
     start: startDebugMode,
     stop: stopDebugMode,
@@ -90,9 +90,8 @@ window.matchmakingDebug = {
     status: () => console.log(`Debug mode: ${isDebugActive ? 'ACTIF' : 'INACTIF'}`)
 };
 
-// Auto-démarrage du debug (seulement sur les pages de matchmaking)
+// auto start du debug sur la page matchmaking
 document.addEventListener('DOMContentLoaded', function() {
-    // Ne démarrer le debug que sur les pages de matchmaking
     if (window.location.pathname.includes('/matchmaking')) {
         console.log(' [DEBUG] Page de matchmaking détectée, auto-démarrage du debug...');
         startDebugMode();
@@ -101,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Instructions dans la console
+// pour la listes des commandes
 console.log(' [DEBUG] Commandes disponibles dans la console:');
 console.log('   └─ matchmakingDebug.start()  - Démarrer le debug');
 console.log('   └─ matchmakingDebug.stop()   - Arrêter le debug'); 
