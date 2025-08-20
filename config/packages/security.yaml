@@ -8,7 +8,7 @@ security:
         app_user_provider:
             entity:
                 class: App\Entity\Player
-                property: email
+                property: username
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
@@ -20,6 +20,8 @@ security:
                 login_path: app_login
                 check_path: app_login
                 enable_csrf: true
+                username_parameter: username
+                password_parameter: password
             logout:
                 path: app_logout
                 # where to redirect after logout
