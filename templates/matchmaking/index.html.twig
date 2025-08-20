@@ -1,0 +1,116 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Matchmaking{% endblock %}
+
+{% block body %}
+<div class="container mt-5">
+    <h1>Recherche de match</h1>
+    
+    <div id="matchmaking-status" class="alert alert-info" style="display: none;">
+        <div id="status-text"></div>
+        <div id="waiting-time"></div>
+    </div>
+    
+    <div id="team-selection">
+        <h3>Sélectionnez votre équipe :</h3>
+        {% if app.user.teams|length > 0 %}
+            {% for team in app.user.teams %}
+                <div class="card mb-2">
+                    <div class="card-body">
+                        <h5>{{ team.name }}</h5>
+                        <p>{{ team.characterInstances|length }} personnages</p>
+                        <button class="btn btn-primary join-queue" data-team-id="{{ team.id }}">
+                            Rejoindre la file
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>Vous devez d'abord créer une équipe !</p>
+            <a href="{{ path('admin') }}" class="btn btn-success">Créer une équipe</a>
+        {% endif %}
+    </div>
+    
+    <div id="queue-actions" style="display: none;">
+        <button id="cancel-queue" class="btn btn-danger">Annuler la recherche</button>
+    </div>
+</div>
+
+<script>
+let statusCheckInterval;
+
+// Rejoindre la file
+document.querySelectorAll('.join-queue').forEach(button => {
+    button.addEventListener('click', function() {
+        const teamId = this.dataset.teamId;
+        
+        fetch('/api/matchmaking/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ team_id: teamId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showQueueStatus();
+                startStatusCheck();
+            } else {
+                alert(data.error);
+            }
+        });
+    });
+});
+
+// Annuler la recherche
+document.getElementById('cancel-queue').addEventListener('click', function() {
+    fetch('/api/matchmaking/cancel', { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            hideQueueStatus();
+            stopStatusCheck();
+        }
+    });
+});
+
+function showQueueStatus() {
+    document.getElementById('team-selection').style.display = 'none';
+    document.getElementById('matchmaking-status').style.display = 'block';
+    document.getElementById('queue-actions').style.display = 'block';
+}
+
+function hideQueueStatus() {
+    document.getElementById('team-selection').style.display = 'block';
+    document.getElementById('matchmaking-status').style.display = 'none';
+    document.getElementById('queue-actions').style.display = 'none';
+}
+
+function startStatusCheck() {
+    statusCheckInterval = setInterval(checkStatus, 2000);
+}
+
+function stopStatusCheck() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+    }
+}
+
+function checkStatus() {
+    fetch('/api/matchmaking/status')
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'SEARCHING') {
+            document.getElementById('status-text').textContent = 'Recherche en cours...';
+            document.getElementById('waiting-time').textContent = 
+                `Temps d'attente: ${data.waiting_time} secondes`;
+        } else if (data.status === 'NOT_IN_QUEUE') {
+            hideQueueStatus();
+            stopStatusCheck();
+        }
+    });
+}
+
+// Vérifier le statut au chargement de la page
+checkStatus();
+</script>
+{% endblock %}

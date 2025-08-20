@@ -6,5 +6,6 @@
  * which should already be in your base.html.twig.
  */
 import './styles/app.scss';
+import './JS/debugMatch.js'
 
-console.log('This log comes from assets/app.js - welcome to AssetMapper! 🎉');
+console.log('📦 [APP] Application principale chargée avec debug matchmaking');

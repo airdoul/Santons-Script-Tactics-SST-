@@ -49,4 +49,11 @@ class CharacterInstance
 
         return $this;
     }
+        public function __toString(): string
+    {
+        $teamName = $this->team ? $this->team->getName() : 'No Team';
+        $characterName = $this->template ? $this->template->getName() : 'No Character';
+        
+        return $characterName . ' (' . $teamName . ')';
+    }
 }

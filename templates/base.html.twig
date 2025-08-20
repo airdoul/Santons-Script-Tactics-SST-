@@ -11,6 +11,10 @@
         {% block stylesheets %}
             {{ encore_entry_link_tags('app') }}
         {% endblock %}
+        {% block javascripts %}
+            {{ encore_entry_script_tags('app') }}
+            {% block importmap %}{{ importmap('app') }}{% endblock %}
+        {% endblock %}
     </head>
     <body>
         <header>
@@ -19,6 +23,9 @@
                     <a class="navbar-brand" href="{{ path('app_homepage') }}">SST</a>
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item"><a class="nav-link" href="{{ path('app_homepage') }}">Home</a></li>
+                        {% if app.user %}
+                            <li class="nav-item"><a class="nav-link" href="{{ path('app_matchmaking') }}">Matchmaking</a></li>
+                        {% endif %}
                         <li class="nav-item"><a class="nav-link" href="{{ path('admin') }}">Admin</a></li>
                         {% if not app.user %}
                             <li class="nav-item"><a class="nav-link" href="{{ path('app_register') }}">S'inscrire</a></li>
@@ -39,10 +46,5 @@
 
         <!-- Bootstrap JS -->
         <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-        
-        {% block javascripts %}
-            {{ encore_entry_script_tags('app') }}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
-        {% endblock %}
     </body>
 </html>

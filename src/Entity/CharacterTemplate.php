@@ -210,4 +210,8 @@ class CharacterTemplate
 
         return $this;
     }
+    public function __toString(): string
+    {
+        return $this->name ?? 'Character #' . $this->id;
+    }
 }
