@@ -8,17 +8,21 @@ use App\Entity\QueueTicket;
 use App\Entity\SSTMatch;
 use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
+use App\Service\CombatService;
 
 class MatchmakingService
 {
     private EntityManagerInterface $entityManager;
     private LoggerInterface $logger;
+    private CombatService $combatService;
 
-    public function __construct(EntityManagerInterface $entityManager, LoggerInterface $logger)
+    public function __construct(EntityManagerInterface $entityManager, LoggerInterface $logger, CombatService $combatService)
     {
         $this->entityManager = $entityManager;
         $this->logger = $logger;
+        $this->combatService = $combatService;
     }
+    
 
     public function joinQueue(Player $player, Team $team): QueueTicket
     {
@@ -212,7 +216,7 @@ class MatchmakingService
     {
         $rngSeed = rand(1000, 9999);
         
-        $this->logger->info(' [MATCHMAKING] Création d\'un nouveau match', [
+        $this->logger->info('🎮 [MATCHMAKING] Création d\'un nouveau match', [
             'team_a' => $ticket1->getTeam()->getName(),
             'team_b' => $ticket2->getTeam()->getName(),
             'rng_seed' => $rngSeed,
@@ -234,11 +238,23 @@ class MatchmakingService
 
         $this->entityManager->flush();
 
-        $this->logger->info(' [MATCHMAKING] Match créé avec succès', [
+        $this->logger->info('✅ [MATCHMAKING] Match créé avec succès', [
             'match_id' => $match->getId(),
             'rng_seed' => $match->getRngSeed(),
             'status' => $match->getStatus()
         ]);
+
+        // 🔥 NOUVEAU : Lancer automatiquement le combat
+        $this->logger->info('⚔️ [MATCHMAKING] Lancement automatique du combat');
+        try {
+            $this->combatService->simulateCombat($match);
+            $this->logger->info('🏆 [MATCHMAKING] Combat terminé avec succès');
+        } catch (\Exception $e) {
+            $this->logger->error('❌ [MATCHMAKING] Erreur pendant le combat', [
+                'error' => $e->getMessage(),
+                'match_id' => $match->getId()
+            ]);
+        }
 
         return $match;
     }
