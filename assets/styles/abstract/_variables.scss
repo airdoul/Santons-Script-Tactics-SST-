@@ -1,0 +1,35 @@
+
+// COULEURS TEAM FIGHT TACTICS THEME - MÉDIÉVAL
+$primary-color: #8b3a3a;        // Rouge brique (armures, bannières)
+$secondary-color: #b8860b;      // Or vieilli (détails royaux, dorures)
+$tertiary-color: #556b2f;       // Vert mousse (forêts, nature)
+$background-color: #f5f0e6;     // Parchemin clair (fond principal)
+
+// COULEURS UTILITAIRES
+$white: #ffffff;
+$black: #000000;
+$text-color: #2f2f2f;           // Texte sombre, lisible
+$border-color: rgba(85, 107, 47, 0.2); // Bordures vert mousse
+
+// COULEURS FONCTIONNELLES
+$success-color: $tertiary-color;
+$warning-color: $secondary-color;
+$danger-color: #a52a2a;         // Rouge sang
+$info-color: #4169e1;           // Bleu royal
+
+
+
+
+
+//  ESPACEMENTS 
+$spacing-xs: 0.25rem;
+$spacing-sm: 0.5rem;
+$spacing-md: 1rem;
+$spacing-lg: 1.5rem;
+$spacing-xl: 2rem;
+
+//  BREAKPOINTS 
+$mobile: 576px;
+$tablet: 1183px;  // Modifié de 768px à 1183px
+$desktop: 992px;
+$large-desktop: 1200px;

@@ -5,46 +5,300 @@
         <title>{% block title %}Welcome!{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
         
-        <!-- Bootstrap CSS -->
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <!-- Font Awesome pour les icônes -->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
         
         {% block stylesheets %}
             {{ encore_entry_link_tags('app') }}
         {% endblock %}
         {% block javascripts %}
             {{ encore_entry_script_tags('app') }}
-            {% block importmap %}{{ importmap('app') }}{% endblock %}
+            <script>
+                window.userInfo = {
+                    isLoggedIn: {{ app.user ? 'true' : 'false' }},
+                    username: '{{ app.user ? app.user.username : '' }}'
+                };
+            </script>
         {% endblock %}
     </head>
     <body>
         <header>
-            <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-                <div class="container">
-                    <a class="navbar-brand" href="{{ path('app_homepage') }}">SST</a>
-                    <ul class="navbar-nav ms-auto">
-                        <li class="nav-item"><a class="nav-link" href="{{ path('app_homepage') }}">Home</a></li>
-                        {% if app.user %}
-                            <li class="nav-item"><a class="nav-link" href="{{ path('app_matchmaking') }}">Matchmaking</a></li>
-                        {% endif %}
-                        <li class="nav-item"><a class="nav-link" href="{{ path('admin') }}">Admin</a></li>
-                        {% if not app.user %}
-                            <li class="nav-item"><a class="nav-link" href="{{ path('app_register') }}">S'inscrire</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ path('app_login') }}">Se Connecter</a></li>
-                        {% endif %}
-                        {% if app.user %}
-                            <li class="nav-item"><a class="nav-link" href="#">Bonjour {{ app.user.username }}</a></li>
-                            <li class="nav-item"><a class="nav-link" href="{{ path('app_logout') }}">Se Déconnecter</a></li>
-                        {% endif %}
+            <nav class="navbar-modern">
+                {# Menu burger pour mobile #}
+                <button class="navbar-burger" type="button" aria-label="Menu mobile">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
+                
+                {# Dropdown menu - SÉPARÉ du logo #}
+                <div class="navbar-dropdown">
+                    <ul class="navbar-nav-links">
+                        {# Groupe de gauche #}
+                        <div class="nav-left">
+                            <li><a href="{{ path('app_homepage') }}" class="dropdown-item"><i class="fas fa-home"></i> Accueil</a></li>
+                            {% if app.user %}
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-sword"></i> Combat</a></li>
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-users"></i> Mon Équipe</a></li>
+                            {% else %}
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-question-circle"></i> Comment Jouer</a></li>
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-user-friends"></i> Personnages</a></li>
+                            {% endif %}
+                        </div>
+                        
+                        {# Espace central réservé pour le logo - VIDE #}
+                        
+                        {# Groupe de droite #}
+                        <div class="nav-right">
+                            {% if app.user %}
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-trophy"></i> Classements</a></li>
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-user-circle"></i> Profil</a></li>
+                                <li><a href="{{ path('app_logout') }}" class="dropdown-item logout-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
+                            {% else %}
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-trophy"></i> Classements</a></li>
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-user-plus"></i> S'inscrire</a></li>
+                                <li><a href="#" class="dropdown-item"><i class="fas fa-sign-in-alt"></i> Connexion</a></li>
+                            {% endif %}
+                        </div>
                     </ul>
                 </div>
             </nav>
+            
+            {# Logo SÉPARÉ et INDÉPENDANT - au-dessus de tout #}
+            <div class="navbar-logo-container">
+                <button class="navbar-logo" type="button" aria-label="Menu principal">
+                    <img src="{{ asset('images/logo1.png') }}" alt="SST Logo">
+                </button>
+            </div>
+        {# Menu mobile plein écran #}
+        <div class="navbar-mobile-menu">
+                <div class="mobile-menu-content">
+                    {% if app.user %}
+                        <a href="{{ path('app_homepage') }}" class="mobile-nav-link"><i class="fas fa-home"></i> Accueil</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-sword"></i> Combat</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-users"></i> Mon Équipe</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-user-friends"></i> Personnages</a>
+                        {% if path('app_matchmaking') is defined %}
+                            <a href="{{ path('app_matchmaking') }}" class="mobile-nav-link"><i class="fas fa-search"></i> Matchmaking</a>
+                        {% endif %}
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-history"></i> Historique</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-trophy"></i> Classements</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-user-circle"></i> Profil</a>
+                        
+                        {% if 'ROLE_ADMIN' in app.user.roles %}
+                            <a href="{{ path('admin') }}" class="mobile-nav-link"><i class="fas fa-cog"></i> Administration</a>
+                        {% endif %}
+                        
+                        <a href="{{ path('app_logout') }}" class="mobile-nav-link logout-link"><i class="fas fa-sign-out-alt"></i> Se Déconnecter</a>
+                    {% else %}
+                        <a href="{{ path('app_homepage') }}" class="mobile-nav-link"><i class="fas fa-home"></i> Accueil</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-question-circle"></i> Comment Jouer</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-user-friends"></i> Personnages</a>
+                        <a href="#" class="mobile-nav-link"><i class="fas fa-trophy"></i> Classements</a>
+                        <a href="{{ path('app_register') }}" class="mobile-nav-link"><i class="fas fa-user-plus"></i> Créer un Compte</a>
+                        <a href="{{ path('app_login') }}" class="mobile-nav-link"><i class="fas fa-sign-in-alt"></i> Se Connecter</a>
+                    {% endif %}
+                </div>
+            </div>
         </header>
 
         <main>
-            {% block body %}{% endblock %}
-        </main>
+            {% block body %}
+                <!-- Titre principal -->
+                <div class="main-title">
+                    <h1>Santons Script Tactics</h1>
+                    <p class="subtitle">Créez votre équipe de 3 héros et affrontez d'autres joueurs !</p>
+                </div>
 
-        <!-- Bootstrap JS -->
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+                <!-- Interface de jeu principale -->
+                <div class="game-interface">
+                    <div class="game-card">
+                        <!-- Onglets de navigation -->
+                        <div class="game-tabs">
+                            <button class="tab-button active" data-tab="team">
+                                <i class="fas fa-users"></i> Mon Équipe
+                            </button>
+                            <button class="tab-button" data-tab="characters">
+                                <i class="fas fa-user-friends"></i> Personnages
+                            </button>
+                            <button class="tab-button" data-tab="battle">
+                                <i class="fas fa-sword"></i> Combat
+                            </button>
+                            <button class="tab-button" data-tab="ranking">
+                                <i class="fas fa-trophy"></i> Classement
+                            </button>
+                            <button class="tab-button" data-tab="history">
+                                <i class="fas fa-history"></i> Historique
+                            </button>
+                        </div>
+
+                        <!-- Contenu des onglets -->
+                        <div class="tab-content">
+                            <!-- Onglet Mon Équipe -->
+                            <div class="tab-panel active" id="team-panel">
+                                <h2>Formation de votre Équipe</h2>
+                                <div class="team-slots">
+                                    <div class="character-slot" data-slot="1">
+                                        <div class="slot-placeholder">
+                                            <i class="fas fa-plus"></i>
+                                            <span>Héros 1</span>
+                                        </div>
+                                    </div>
+                                    <div class="character-slot" data-slot="2">
+                                        <div class="slot-placeholder">
+                                            <i class="fas fa-plus"></i>
+                                            <span>Héros 2</span>
+                                        </div>
+                                    </div>
+                                    <div class="character-slot" data-slot="3">
+                                        <div class="slot-placeholder">
+                                            <i class="fas fa-plus"></i>
+                                            <span>Héros 3</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Personnages -->
+                            <div class="tab-panel" id="characters-panel">
+                                <h2>Personnages Disponibles</h2>
+                                <div class="characters-grid">
+                                    <p class="loading-text">Chargement des personnages...</p>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Combat -->
+                            <div class="tab-panel" id="battle-panel">
+                                <h2>Rechercher un Combat</h2>
+                                <div class="battle-search">
+                                    <p class="info-text">Sélectionnez votre équipe pour commencer</p>
+                                    <button class="search-battle-btn" disabled>
+                                        <i class="fas fa-search"></i> Rechercher un Match
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Classement -->
+                            <div class="tab-panel" id="ranking-panel">
+                                <h2>Classement des Joueurs</h2>
+                                
+                                <!-- Indicateur position utilisateur (sticky) -->
+                                {% if app.user %}
+                                <div class="user-ranking-sticky" id="userRankingSticky">
+                                    <div class="user-position-indicator">
+                                        <span class="position-text">Votre position:</span>
+                                        <span class="position-number">#42</span>
+                                        <span class="rating-text">1250 pts</span>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                <!-- Classement général -->
+                                <div class="general-ranking">
+                                    <div class="ranking-controls">
+                                        <button class="ranking-btn active" data-filter="global">
+                                            <i class="fas fa-globe"></i> Global
+                                        </button>
+                                        <button class="ranking-btn" data-filter="weekly">
+                                            <i class="fas fa-calendar-week"></i> Semaine
+                                        </button>
+                                        <button class="ranking-btn" data-filter="monthly">
+                                            <i class="fas fa-calendar-alt"></i> Mois
+                                        </button>
+                                    </div>
+
+                                    <div class="ranking-list" id="ranking-list">
+                                        <!-- Top 3 avec design spécial -->
+                                        <div class="top-players">
+                                            <div class="ranking-entry top-1">
+                                                <span class="rank gold"><i class="fas fa-crown"></i> 1</span>
+                                                <div class="player-info">
+                                                    <span class="player-name">ChampionSST</span>
+                                                    <div class="player-stats">
+                                                        <span class="rating"><i class="fas fa-star"></i> 2150</span>
+                                                        <span class="wins"><i class="fas fa-trophy"></i> 87V</span>
+                                                        <span class="losses"><i class="fas fa-times"></i> 13D</span>
+                                                    </div>
+                                                </div>
+                                                <span class="rating-change positive">+12</span>
+                                            </div>
+
+                                            <div class="ranking-entry top-2">
+                                                <span class="rank silver"><i class="fas fa-medal"></i> 2</span>
+                                                <div class="player-info">
+                                                    <span class="player-name">TacticalMaster</span>
+                                                    <div class="player-stats">
+                                                        <span class="rating"><i class="fas fa-star"></i> 2050</span>
+                                                        <span class="wins"><i class="fas fa-trophy"></i> 76V</span>
+                                                        <span class="losses"><i class="fas fa-times"></i> 24D</span>
+                                                    </div>
+                                                </div>
+                                                <span class="rating-change negative">-5</span>
+                                            </div>
+
+                                            <div class="ranking-entry top-3">
+                                                <span class="rank bronze"><i class="fas fa-award"></i> 3</span>
+                                                <div class="player-info">
+                                                    <span class="player-name">StrategicLord</span>
+                                                    <div class="player-stats">
+                                                        <span class="rating"><i class="fas fa-star"></i> 1980</span>
+                                                        <span class="wins"><i class="fas fa-trophy"></i> 65V</span>
+                                                        <span class="losses"><i class="fas fa-times"></i> 35D</span>
+                                                    </div>
+                                                </div>
+                                                <span class="rating-change positive">+18</span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Autres joueurs -->
+                                        <div class="other-players">
+                                            <div class="ranking-entry">
+                                                <span class="rank">#4</span>
+                                                <div class="player-info">
+                                                    <span class="player-name">BattleExpert</span>
+                                                    <div class="player-stats">
+                                                        <span class="rating"><i class="fas fa-star"></i> 1920</span>
+                                                        <span class="wins"><i class="fas fa-trophy"></i> 58V</span>
+                                                        <span class="losses"><i class="fas fa-times"></i> 42D</span>
+                                                    </div>
+                                                </div>
+                                                <span class="rating-change positive">+8</span>
+                                            </div>
+
+                                            <div class="ranking-entry">
+                                                <span class="rank">#5</span>
+                                                <div class="player-info">
+                                                    <span class="player-name">GuildWarrior</span>
+                                                    <div class="player-stats">
+                                                        <span class="rating"><i class="fas fa-star"></i> 1875</span>
+                                                        <span class="wins"><i class="fas fa-trophy"></i> 52V</span>
+                                                        <span class="losses"><i class="fas fa-times"></i> 38D</span>
+                                                    </div>
+                                                </div>
+                                                <span class="rating-change negative">-15</span>
+                                            </div>
+
+                                            <div class="ranking-more">
+                                                <button class="load-more-btn">
+                                                    <i class="fas fa-chevron-down"></i> Voir plus de joueurs
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Onglet Historique -->
+                            <div class="tab-panel" id="history-panel">
+                                <h2>Historique des Combats</h2>
+                                <div class="match-history">
+                                    <p class="empty-history">Aucun combat joué pour le moment</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endblock %}
+        </main>
     </body>
 </html>

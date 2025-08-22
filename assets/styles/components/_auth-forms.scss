@@ -1,0 +1,288 @@
+/*  FORMULAIRES D'AUTHENTIFICATION  */
+@use '../abstract/variables' as *;
+@use 'sass:color';
+
+// CONTENEUR PRINCIPAL CENTRÉ 
+.auth-form-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: flex-start; // Alignement vers le haut au lieu de center
+  justify-content: center;
+  padding: $spacing-md;
+  
+  // Positionner à 1rem du logo : 0.5rem (logo top) + 130px (logo height) + 1rem (espace) = calc(1.5rem + 130px)
+  padding-top: calc(1.5rem + 130px);
+  
+  // Background avec overlay pour lisibilité
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: -1;
+  }
+}
+
+//  CARD DE FORMULAIRE 
+.auth-card {
+  background: rgba(248, 247, 244, 0.95);
+  border: 3px solid $primary-color;
+  border-radius: 15px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  max-width: 450px;
+  width: 100%;
+  overflow: hidden;
+  
+  // Animation d'entrée
+  animation: authCardSlideIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  
+  @keyframes authCardSlideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-30px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+}
+
+//  EN-TÊTE DE LA CARD 
+.auth-card-header {
+  background: linear-gradient(135deg, $primary-color 0%, color.adjust($primary-color, $lightness: -10%) 100%);
+  color: $white;
+  padding: $spacing-lg;
+  text-align: center;
+  border-bottom: 2px solid $secondary-color;
+  
+  h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  // Icône décorative
+  &::before {
+    content: '⚔️';
+    display: block;
+    font-size: 2rem;
+    margin-bottom: $spacing-sm;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  }
+}
+
+//  CORPS DE LA CARD 
+.auth-card-body {
+  padding: $spacing-xl;
+  
+  // Style des champs de formulaire
+  .form-group, .mb-3 {
+    margin-bottom: $spacing-lg;
+    
+    label {
+      display: block;
+      color: $text-color;
+      font-weight: 600;
+      margin-bottom: $spacing-sm;
+      font-size: 0.95rem;
+    }
+    
+    input[type="text"],
+    input[type="email"], 
+    input[type="password"] {
+      width: 100%;
+      padding: $spacing-md;
+      border: 2px solid rgba($primary-color, 0.3);
+      border-radius: 8px;
+      background: rgba($white, 0.9);
+      font-size: 1rem;
+      transition: all 0.3s ease;
+      
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
+        background: $white;
+      }
+      
+      &::placeholder {
+        color: rgba($text-color, 0.6);
+      }
+    }
+  }
+  
+  // Style des checkboxes
+  .form-check {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      accent-color: $primary-color;
+    }
+    
+    label {
+      margin-bottom: 0;
+      font-size: 0.9rem;
+      color: rgba($text-color, 0.8);
+    }
+  }
+}
+
+//  BOUTONS D'ACTION 
+.auth-submit-btn {
+  width: 100%;
+  padding: $spacing-md $spacing-lg;
+  background: linear-gradient(135deg, $primary-color 0%, color.adjust($primary-color, $lightness: -15%) 100%);
+  color: $white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  box-shadow: 0 4px 15px rgba($primary-color, 0.3);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba($primary-color, 0.4);
+    background: linear-gradient(135deg, color.adjust($primary-color, $lightness: 5%) 0%, $primary-color 100%);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+//  LIENS DE NAVIGATION 
+.auth-links {
+  text-align: center;
+  margin-top: $spacing-lg;
+  padding-top: $spacing-lg;
+  border-top: 1px solid rgba($primary-color, 0.2);
+  
+  p {
+    margin: 0;
+    color: rgba($text-color, 0.8);
+    font-size: 0.95rem;
+  }
+  
+  a {
+    color: $primary-color;
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      color: color.adjust($primary-color, $lightness: -15%);
+      text-decoration: underline;
+    }
+  }
+}
+
+//  MESSAGES D'ERREUR ET SUCCÈS 
+.auth-alert {
+  padding: $spacing-md;
+  border-radius: 8px;
+  margin-bottom: $spacing-lg;
+  border-left: 4px solid;
+  
+  &.alert-danger {
+    background: rgba(#dc3545, 0.1);
+    border-color: #dc3545;
+    color: #721c24;
+  }
+  
+  &.alert-success {
+    background: rgba($tertiary-color, 0.1);
+    border-color: $tertiary-color;
+    color: color.adjust($tertiary-color, $lightness: -30%);
+  }
+}
+
+//  RESPONSIVE 
+@media (max-width: $tablet) {
+  .auth-form-container {
+    padding: $spacing-sm;
+  }
+  
+  .auth-card {
+    margin: $spacing-sm;
+    max-width: none;
+  }
+  
+  .auth-card-body {
+    padding: $spacing-lg;
+  }
+}
+
+@media (max-width: $mobile) {
+  .auth-card-header {
+    padding: $spacing-md;
+    
+    h3 {
+      font-size: 1.3rem;
+    }
+  }
+  
+  .auth-card-body {
+    padding: $spacing-md;
+    
+    .form-group, .mb-3 {
+      margin-bottom: $spacing-md;
+    }
+  }
+}
+
+//  THÈME DYSTOPIQUE 
+.theme-dysto {
+  .auth-card-header {
+    background: linear-gradient(135deg, #ff6b35 0%, color.adjust(#ff6b35, $lightness: -15%) 100%);
+    border-bottom-color: #7209b7;
+    
+    &::before {
+      content: '🔮';
+    }
+  }
+  
+  .auth-submit-btn {
+    background: linear-gradient(135deg, #ff6b35 0%, color.adjust(#ff6b35, $lightness: -15%) 100%);
+    box-shadow: 0 4px 15px rgba(#ff6b35, 0.3);
+    
+    &:hover {
+      background: linear-gradient(135deg, color.adjust(#ff6b35, $lightness: 5%) 0%, #ff6b35 100%);
+      box-shadow: 0 8px 25px rgba(#ff6b35, 0.4);
+    }
+  }
+  
+  .auth-card-body {
+    .form-group, .mb-3 {
+      input:focus {
+        border-color: #ff6b35;
+        box-shadow: 0 0 0 3px rgba(#ff6b35, 0.1);
+      }
+    }
+    
+    .form-check input[type="checkbox"] {
+      accent-color: #ff6b35;
+    }
+  }
+  
+  .auth-links a {
+    color: #ff6b35;
+    
+    &:hover {
+      color: color.adjust(#ff6b35, $lightness: -15%);
+    }
+  }
+}

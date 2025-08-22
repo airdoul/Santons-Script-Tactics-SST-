@@ -1,0 +1,557 @@
+/*  INTERFACE DE JEU - SANTONS SCRIPT TACTICS  */
+@use '../abstract/variables' as *;
+@use 'sass:color';
+
+//  TITRE PRINCIPAL 
+.main-title {
+  text-align: center;
+  margin: 2rem 0 3rem 0;
+  padding: 0 140px;  // Espace pour les boutons latéraux
+
+  h1 {
+    font-size: 3.5rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, $primary-color, $secondary-color, $tertiary-color);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    margin-bottom: 1rem;
+    letter-spacing: 2px;
+  }
+
+  .subtitle {
+    font-size: 1rem;
+    color: rgb(255, 252, 224);
+    font-weight: 500;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+}
+
+//  INTERFACE DE JEU 
+.game-interface {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.game-card {
+  background: linear-gradient(135deg, 
+    rgba(248, 247, 244, 0.95), 
+    rgba(248, 247, 244, 0.85)
+  );
+  border: 3px solid $primary-color;
+  border-radius: 20px;
+  box-shadow: 
+    0 20px 60px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+//  ONGLETS 
+.game-tabs {
+  display: flex;
+  background: linear-gradient(90deg, $primary-color, $secondary-color);
+  border-bottom: 2px solid color.adjust($primary-color, $lightness: -10%);
+}
+
+.tab-button {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 1.2rem 1rem;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  &.active {
+    background: $background-color;
+    color: $primary-color;
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: $primary-color;
+    }
+  }
+
+  i {
+    font-size: 1.1rem;
+  }
+}
+
+//  CONTENU DES ONGLETS 
+.tab-content {
+  padding: 2.5rem;
+  min-height: 500px;
+}
+
+.tab-panel {
+  display: none;
+
+  &.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  h2 {
+    color: $primary-color;
+    font-size: 1.8rem;
+    margin-bottom: 2rem;
+    text-align: center;
+    font-weight: bold;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+//  ÉQUIPE - SLOTS DE PERSONNAGES 
+.team-slots {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.character-slot {
+  background: linear-gradient(135deg, 
+    rgba(226, 114, 91, 0.1), 
+    rgba(204, 119, 34, 0.1)
+  );
+  border: 2px dashed $primary-color;
+  border-radius: 15px;
+  padding: 2rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &:hover {
+    background: linear-gradient(135deg, 
+      rgba(226, 114, 91, 0.2), 
+      rgba(204, 119, 34, 0.2)
+    );
+    border-color: $secondary-color;
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(226, 114, 91, 0.3);
+  }
+
+  .slot-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    color: $primary-color;
+
+    i {
+      font-size: 2.5rem;
+      opacity: 0.7;
+    }
+
+    span {
+      font-weight: bold;
+      font-size: 1.1rem;
+    }
+  }
+}
+
+//  PERSONNAGES GRID 
+.characters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  text-align: center;
+
+  .loading-text {
+    grid-column: 1 / -1;
+    color: $tertiary-color;
+    font-size: 1.2rem;
+    font-style: italic;
+  }
+}
+
+.character-card {
+  background: linear-gradient(135deg, 
+    rgba(248, 247, 244, 0.9), 
+    rgba(248, 247, 244, 0.7)
+  );
+  border: 2px solid $primary-color;
+  border-radius: 15px;
+  padding: 1.5rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 30px rgba(226, 114, 91, 0.3);
+    border-color: $secondary-color;
+  }
+
+  .character-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 1rem auto;
+    border: 3px solid $primary-color;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  h4 {
+    color: $primary-color;
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    font-weight: bold;
+  }
+
+  .character-role {
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+
+    &.role-tank {
+      background: linear-gradient(135deg, #6c757d, #495057);
+      color: white;
+    }
+
+    &.role-dps {
+      background: linear-gradient(135deg, #dc3545, #c82333);
+      color: white;
+    }
+
+    &.role-soigneur {
+      background: linear-gradient(135deg, #28a745, #20c997);
+      color: white;
+    }
+  }
+
+  .character-stats {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 1rem;
+
+    .stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.9rem;
+      color: $tertiary-color;
+
+      i {
+        font-size: 1rem;
+        
+        &.fa-heart { color: #dc3545; }
+        &.fa-sword { color: #fd7e14; }
+        &.fa-shield-alt { color: #6c757d; }
+      }
+    }
+  }
+
+  .select-character-btn {
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    border: none;
+    border-radius: 8px;
+    padding: 0.6rem 1.2rem;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px rgba(226, 114, 91, 0.4);
+    }
+  }
+}
+
+//  SLOTS D'ÉQUIPE OCCUPÉS 
+.character-slot {
+  &.occupied {
+    background: linear-gradient(135deg, 
+      rgba(226, 114, 91, 0.2), 
+      rgba(204, 119, 34, 0.2)
+    );
+    border: 2px solid $primary-color;
+
+    .character-info {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      position: relative;
+
+      .character-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        overflow: hidden;
+        border: 2px solid $primary-color;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+        }
+      }
+
+      h4 {
+        color: $primary-color;
+        font-weight: bold;
+        margin: 0;
+      }
+
+      .character-role {
+        background: $secondary-color;
+        color: white;
+        padding: 0.2rem 0.6rem;
+        border-radius: 10px;
+        font-size: 0.8rem;
+        font-weight: bold;
+      }
+
+      .remove-character {
+        position: absolute;
+        top: -10px;
+        right: -10px;
+        background: #dc3545;
+        border: none;
+        border-radius: 50%;
+        width: 25px;
+        height: 25px;
+        color: white;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #c82333;
+          transform: scale(1.1);
+        }
+      }
+    }
+  }
+}
+
+//  RECHERCHE DE COMBAT 
+.battle-search {
+  text-align: center;
+  max-width: 500px;
+  margin: 0 auto;
+
+  .info-text {
+    color: $tertiary-color;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+  }
+
+  .search-battle-btn {
+    background: linear-gradient(135deg, $primary-color, $secondary-color);
+    border: none;
+    border-radius: 12px;
+    padding: 1rem 2rem;
+    color: white;
+    font-size: 1.2rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin: 0 auto;
+    box-shadow: 0 6px 20px rgba(226, 114, 91, 0.4);
+
+    &:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(226, 114, 91, 0.5);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    i {
+      font-size: 1.1rem;
+    }
+  }
+}
+
+//  HISTORIQUE 
+.match-history {
+  text-align: center;
+
+  .empty-history {
+    color: $tertiary-color;
+    font-size: 1.1rem;
+    font-style: italic;
+  }
+}
+
+//  RESPONSIVE DESIGN 
+@media (max-width: 768px) {
+  .main-title {
+    padding: 0 80px;  // Moins d'espace latéral sur tablette
+
+    h1 {
+      font-size: 2.5rem;
+    }
+
+    .subtitle {
+      font-size: 0.75rem;
+    }
+  }
+
+  .game-tabs {
+    flex-direction: column;
+
+    .tab-button {
+      padding: 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+  }
+
+  .tab-content {
+    padding: 1.5rem;
+  }
+
+  .team-slots {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .character-slot {
+    min-height: 150px;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .game-interface {
+    padding: 0 1rem;
+  }
+
+  .main-title {
+    margin: 1rem 0 2rem 0;
+    padding: 0 2rem;  // Padding standard pour mobile
+
+    h1 {
+      font-size: 2rem;
+    }
+  }
+
+  .tab-content {
+    padding: 1rem;
+    min-height: 400px;
+  }
+}
+
+//  NOTIFICATIONS 
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: white;
+  border-radius: 10px;
+  padding: 1rem 1.5rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  z-index: 9999;
+  transform: translateX(400px);
+  transition: transform 0.3s ease;
+
+  &.show {
+    transform: translateX(0);
+  }
+
+  &.notification-success {
+    border-left: 4px solid #28a745;
+    
+    i {
+      color: #28a745;
+    }
+  }
+
+  &.notification-warning {
+    border-left: 4px solid #ffc107;
+    
+    i {
+      color: #ffc107;
+    }
+  }
+
+  &.notification-error {
+    border-left: 4px solid #dc3545;
+    
+    i {
+      color: #dc3545;
+    }
+  }
+
+  &.notification-info {
+    border-left: 4px solid #17a2b8;
+    
+    i {
+      color: #17a2b8;
+    }
+  }
+
+  i {
+    font-size: 1.2rem;
+  }
+
+  span {
+    font-weight: 500;
+    color: #333;
+  }
+}

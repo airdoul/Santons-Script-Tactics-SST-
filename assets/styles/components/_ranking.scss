@@ -1,0 +1,352 @@
+@use '../abstract/variables' as *;
+@use 'sass:color';
+
+/*  SYSTÈME DE CLASSEMENT  */
+
+// Indicateur position utilisateur (sticky)
+.user-ranking-sticky {
+  position: sticky;
+  top: 10px;
+  z-index: 100;
+  background: rgba($primary-color, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 25px;
+  padding: 0.75rem 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+
+  .user-position-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    color: white;
+    font-weight: 600;
+
+    .position-text {
+      opacity: 0.9;
+      font-size: 0.9rem;
+    }
+
+    .position-number {
+      background: rgba(255, 255, 255, 0.2);
+      padding: 0.25rem 0.75rem;
+      border-radius: 15px;
+      font-weight: bold;
+    }
+
+    .rating-text {
+      opacity: 0.9;
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.ranking-controls {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+
+  .ranking-btn {
+    background: rgba(248, 247, 244, 0.8);
+    border: 2px solid transparent;
+    border-radius: 25px;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    &:hover {
+      background: rgba(226, 114, 91, 0.1);
+      border-color: $primary-color;
+      transform: translateY(-2px);
+    }
+
+    &.active {
+      background: $primary-color;
+      color: white;
+      border-color: $primary-color;
+    }
+
+    i {
+      font-size: 0.9rem;
+    }
+  }
+}
+
+.ranking-list {
+  .top-players {
+    margin-bottom: 2rem;
+  }
+
+  .other-players {
+    .ranking-entry {
+      margin-bottom: 0.5rem;
+    }
+  }
+}
+
+.ranking-entry {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.5rem;
+  background: rgba(248, 247, 244, 0.9);
+  border-radius: 15px;
+  margin-bottom: 1rem;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+
+  &:hover {
+    transform: translateX(5px);
+    border-color: rgba(226, 114, 91, 0.3);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+
+  .rank {
+    font-weight: bold;
+    font-size: 1.2rem;
+    min-width: 50px;
+    text-align: center;
+    color: #666;
+
+    &.gold {
+      color: #ffd700;
+      font-size: 1.4rem;
+    }
+
+    &.silver {
+      color: #c0c0c0;
+      font-size: 1.3rem;
+    }
+
+    &.bronze {
+      color: #cd7f32;
+      font-size: 1.3rem;
+    }
+  }
+
+  .player-info {
+    flex: 1;
+
+    .player-name {
+      font-weight: bold;
+      font-size: 1.1rem;
+      color: #333;
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .player-stats {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.9rem;
+
+      .rating {
+        color: $primary-color;
+        font-weight: 600;
+      }
+
+      .wins {
+        color: #28a745;
+        font-weight: 500;
+      }
+
+      .losses {
+        color: #dc3545;
+        font-weight: 500;
+      }
+
+      i {
+        margin-right: 0.3rem;
+      }
+    }
+  }
+
+  .rating-change {
+    font-weight: bold;
+    font-size: 1rem;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    min-width: 60px;
+    text-align: center;
+
+    &.positive {
+      background: rgba(40, 167, 69, 0.2);
+      color: #28a745;
+    }
+
+    &.negative {
+      background: rgba(220, 53, 69, 0.2);
+      color: #dc3545;
+    }
+
+    &.neutral {
+      background: rgba(108, 117, 125, 0.2);
+      color: #6c757d;
+    }
+  }
+
+  // Style discret pour l'entrée du joueur (surlignage léger)
+  &.user-entry {
+    background: rgba($primary-color, 0.08);
+    border-left: 4px solid $primary-color;
+    box-shadow: 0 2px 8px rgba($primary-color, 0.15);
+    
+    .player-name {
+      color: $primary-color;
+      font-weight: 600;
+    }
+  }
+}
+
+.ranking-more {
+  text-align: center;
+  margin-top: 1.5rem;
+
+  .load-more-btn {
+    background: rgba(248, 247, 244, 0.8);
+    border: 2px solid $primary-color;
+    border-radius: 25px;
+    padding: 0.75rem 2rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    color: $primary-color;
+
+    &:hover {
+      background: $primary-color;
+      color: white;
+      transform: translateY(-2px);
+    }
+
+    i {
+      margin-right: 0.5rem;
+    }
+  }
+}
+
+/*  RESPONSIVE RANKING  */
+@media (max-width: 768px) {
+  .ranking-controls {
+    flex-wrap: wrap;
+
+    .ranking-btn {
+      padding: 0.5rem 1rem;
+      font-size: 0.9rem;
+    }
+  }
+
+  .ranking-entry {
+    padding: 0.75rem 1rem;
+
+    .player-info .player-stats {
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .rating-change {
+      font-size: 0.9rem;
+      padding: 0.2rem 0.6rem;
+    }
+  }
+
+  .user-ranking-highlight {
+    padding: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .ranking-entry {
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+
+    .rank {
+      align-self: flex-end;
+    }
+
+    .rating-change {
+      align-self: flex-end;
+    }
+  }
+}
+
+/*  TOOLTIPS EXPLICATIFS  */
+.rating-change {
+  position: relative;
+  cursor: help;
+
+  &::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+    pointer-events: none;
+    margin-bottom: 5px;
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 5px solid rgba(0, 0, 0, 0.9);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+    z-index: 1000;
+  }
+
+  &:hover::before,
+  &:hover::after {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+/*  RESPONSIVE  */
+@media (max-width: $tablet) {
+  .user-ranking-sticky {
+    padding: 0.5rem 1rem;
+    
+    .user-position-indicator {
+      gap: 0.5rem;
+      
+      .position-text,
+      .rating-text {
+        font-size: 0.8rem;
+      }
+    }
+  }
+
+  .ranking-entry {
+    flex-direction: column;
+    text-align: center;
+    
+    .player-info {
+      margin: 0.5rem 0;
+    }
+  }
+}
