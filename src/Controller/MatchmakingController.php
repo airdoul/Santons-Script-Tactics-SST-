@@ -172,4 +172,32 @@ class MatchmakingController extends AbstractController
             ], 500);
         }
     }
+
+    #[Route('/results', name: 'matchmaking_results', methods: ['GET'])]
+    public function getResults(): JsonResponse
+    {
+        $matches = $this->entityManager->getRepository(SSTMatch::class)
+            ->findBy(['status' => 'FINISHED'], ['finishedAt' => 'DESC'], 10);
+        
+        $results = [];
+        foreach ($matches as $match) {
+            $results[] = [
+                'id' => $match->getId(),
+                'team_a' => $match->getTeamA()->getName(),
+                'team_b' => $match->getTeamB()->getName(),
+                'winner' => $match->getWinnerTeam() ? $match->getWinnerTeam()->getName() : 'Aucun',
+                'team_a_power' => $match->getTeamAPower(),
+                'team_b_power' => $match->getTeamBPower(),
+                'team_a_chance' => round($match->getTeamAPercent() * 100, 1) . '%',
+                'team_b_chance' => round((1 - $match->getTeamAPercent()) * 100, 1) . '%',
+                'status' => $match->getStatus(),
+                'finished_at' => $match->getFinishedAt() ? $match->getFinishedAt()->format('H:i:s') : null
+            ];
+        }
+        
+        return $this->json([
+            'total_matches' => count($results),
+            'matches' => $results
+        ]);
+    }
 }

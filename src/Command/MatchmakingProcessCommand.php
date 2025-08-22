@@ -27,7 +27,7 @@ class MatchmakingProcessCommand extends Command
     {
         $io = new SymfonyStyle($input, $output);
         
-        // Message de démarrage avec timestamp
+        // msg de start
         $timestamp = (new \DateTime())->format('H:i:s');
         $io->writeln(sprintf(' [%s] MATCHMAKING PROCESSOR - Début du traitement', $timestamp));
         
@@ -41,7 +41,7 @@ class MatchmakingProcessCommand extends Command
             if (count($matches) > 0) {
                 $io->success(sprintf('[%s]  %d nouveaux matchs créés !', $endTimestamp, count($matches)));
                 
-                // Afficher les détails des matchs créés
+                // show details
                 $tableData = [];
                 foreach ($matches as $match) {
                     $tableData[] = [
@@ -61,7 +61,7 @@ class MatchmakingProcessCommand extends Command
                     ));
                 }
                 
-                // Tableau récapitulatif
+                // tableau recap
                 $io->table(
                     ['ID', 'Équipe A', 'Équipe B', 'Seed', 'Status'],
                     $tableData
