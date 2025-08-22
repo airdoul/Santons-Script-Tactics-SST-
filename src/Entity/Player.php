@@ -27,6 +27,7 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(length: 255)]
     private ?string $password = null;
+    
 
     #[ORM\Column]
     private ?\DateTimeImmutable $createdAt = null;
@@ -48,6 +49,9 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
      */
     #[ORM\OneToMany(targetEntity: RatingHistory::class, mappedBy: 'player', orphanRemoval: true)]
     private Collection $ratingHistories;
+
+    #[ORM\Column]
+    private array $roles = [];
 
     public function __construct()
     {
@@ -206,5 +210,12 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
     public function __toString(): string
     {
         return $this->username ?? $this->email ?? 'Player #' . $this->id;
+    }
+
+    public function setRoles(array $roles): static
+    {
+        $this->roles = $roles;
+
+        return $this;
     }
 }

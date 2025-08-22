@@ -172,7 +172,7 @@
                                 <h2>Rechercher un Combat</h2>
                                 <div class="battle-search">
                                     <p class="info-text">Sélectionnez votre équipe pour commencer</p>
-                                    <button class="search-battle-btn" disabled>
+                                    <button class="search-battle-btn" data-team-id="{{ team.id }}">
                                         <i class="fas fa-search"></i> Rechercher un Match
                                     </button>
                                 </div>
@@ -300,5 +300,83 @@
                 </div>
             {% endblock %}
         </main>
+    <script>
+let statusCheckInterval;
+
+// Rejoindre la file
+document.querySelectorAll('.join-queue').forEach(button => {
+    button.addEventListener('click', function() {
+        const teamId = this.dataset.teamId;
+        
+        fetch('/api/matchmaking/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ team_id: teamId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                showQueueStatus();
+                startStatusCheck();
+            } else {
+                alert(data.error);
+            }
+        });
+    });
+});
+
+// Annuler la recherche
+document.getElementById('cancel-queue').addEventListener('click', function() {
+    fetch('/api/matchmaking/cancel', { method: 'POST' })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            hideQueueStatus();
+            stopStatusCheck();
+        }
+    });
+});
+
+function showQueueStatus() {
+    document.getElementById('team-selection').style.display = 'none';
+    document.getElementById('matchmaking-status').style.display = 'block';
+    document.getElementById('queue-actions').style.display = 'block';
+}
+
+function hideQueueStatus() {
+    document.getElementById('team-selection').style.display = 'block';
+    document.getElementById('matchmaking-status').style.display = 'none';
+    document.getElementById('queue-actions').style.display = 'none';
+}
+
+function startStatusCheck() {
+    statusCheckInterval = setInterval(checkStatus, 2000);
+}
+
+function stopStatusCheck() {
+    if (statusCheckInterval) {
+        clearInterval(statusCheckInterval);
+    }
+}
+
+function checkStatus() {
+    fetch('/api/matchmaking/status')
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'SEARCHING') {
+            document.getElementById('status-text').textContent = 'Recherche en cours...';
+            document.getElementById('waiting-time').textContent = 
+                `Temps d'attente: ${data.waiting_time} secondes`;
+        } else if (data.status === 'NOT_IN_QUEUE') {
+            hideQueueStatus();
+            stopStatusCheck();
+        }
+    });
+}
+
+// Vérifier le statut au chargement de la page
+checkStatus();
+</script>
+{% endblock %}
     </body>
 </html>
