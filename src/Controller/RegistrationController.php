@@ -31,6 +31,10 @@ class RegistrationController extends AbstractController
             // Assigner le rôle USER par défaut
             $player->setRoles(['ROLE_USER']);
 
+            // Mettre le MMR a 1000 par défaut
+            $player->setMMR(1000);
+
+            
             $entityManager->persist($player);
             $entityManager->flush();
 

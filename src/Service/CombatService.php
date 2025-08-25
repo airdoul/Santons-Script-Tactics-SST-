@@ -51,7 +51,10 @@ class CombatService
         // 5. determine le winner
         $this->determineWinner($match);
 
-        // 6. finaliser le match
+        // 6. NOUVEAU : Mise à jour des MMR des joueurs
+        $this->updatePlayersMMR($match);
+
+        // 7. finaliser le match
         $match->setStatus('FINISHED');
         $match->setFinishedAt(new \DateTimeImmutable());
 
@@ -237,5 +240,105 @@ class CombatService
                 " Victoire de " . $match->getTeamB()->getName() . "! (" . round((1 - $teamAChance) * 100, 1) . "% de chances)"
             );
         }
+    }
+
+    private function updatePlayersMMR(SSTMatch $match): void
+    {
+        $playerA = $match->getTeamA()->getPlayer();
+        $playerB = $match->getTeamB()->getPlayer();
+        
+        $mmrA = $playerA->getMMR() ?? 1000;
+        $mmrB = $playerB->getMMR() ?? 1000;
+        
+        // Calculer la différence de MMR
+        $mmrDifference = abs($mmrA - $mmrB);
+        
+        // Déterminer le gagnant et le perdant
+        $winner = $match->getWinnerTeam();
+        if (!$winner) {
+            // En cas d'égalité, pas de changement de MMR
+            $this->logger->info(' [MMR] Égalité - Pas de changement de MMR');
+            return;
+        }
+        
+        $winnerPlayer = $winner->getPlayer();
+        $loserPlayer = ($winnerPlayer === $playerA) ? $playerB : $playerA;
+        $winnerMMR = $winnerPlayer->getMMR() ?? 1200;
+        $loserMMR = $loserPlayer->getMMR() ?? 1200;
+        
+        // Calcul du coefficient basé sur la différence de MMR
+        $baseMMRChange = 12; //  gain/perte de base
+        // PARAMÈTRE DE RANDOMISATION
+        $randomVariation = 5; // +5 points de variation aléatoire
+
+        if ($mmrDifference > 150) {
+            // Grande différence de MMR
+            if ($winnerMMR > $loserMMR) {
+                // Le favori gagne : moins de MMR gagné
+                $baseGain = max(8, $baseMMRChange - floor($mmrDifference / 10));
+                $baseLoss = min(45, $baseMMRChange + floor($mmrDifference / 15));
+            } else {
+                // L'underdog gagne : plus de MMR gagné
+                $baseGain = $baseMMRChange + floor($mmrDifference / 8);
+                $baseLoss = max(7, $baseMMRChange - floor($mmrDifference / 12));
+            }
+        } else {
+            // Différence normale (≤ 150)
+            $coefficient = 1 + ($mmrDifference / 300); // Coefficient entre 1 et 1.5
+            
+            if ($winnerMMR > $loserMMR) {
+                // Le favori gagne
+                $baseGain = max(15, floor($baseMMRChange / $coefficient));
+                $baseLoss = min(35, floor($baseMMRChange * $coefficient));
+            } else {
+                // L'underdog gagne
+                $baseGain = floor($baseMMRChange * $coefficient);
+                $baseLoss = max(12, floor($baseMMRChange / $coefficient));
+            }
+        }
+
+        // 🎲 APPLICATION DE LA RANDOMISATION (Méthode 1)
+        $mmrGain = $baseGain + mt_rand(-$randomVariation, $randomVariation);
+        $mmrLoss = $baseLoss + mt_rand(-$randomVariation, $randomVariation);
+
+        // 🛡️ Sécurités pour éviter les valeurs extrêmes
+        $mmrGain = max(5, min(60, $mmrGain)); // Entre 5 et 60 points minimum/maximum
+        $mmrLoss = max(3, min(50, $mmrLoss)); // Entre 3 et 50 points minimum/maximum
+
+        // Appliquer les changements
+        $newWinnerMMR = $winnerMMR + $mmrGain;
+        $newLoserMMR = max(0, $loserMMR - $mmrLoss); // MMR ne peut pas être négatif
+                
+        $winnerPlayer->setMMR($newWinnerMMR);
+        $loserPlayer->setMMR($newLoserMMR);
+        
+        // Persister les changements
+        $this->entityManager->persist($winnerPlayer);
+        $this->entityManager->persist($loserPlayer);
+        
+        // Log des changements
+        $this->logger->info(' [MMR] Mise à jour des MMR', [
+            'match_id' => $match->getId(),
+            'winner' => $winnerPlayer->getUsername(),
+            'winner_mmr_change' => "+{$mmrGain} ({$winnerMMR} → {$newWinnerMMR})",
+            'loser' => $loserPlayer->getUsername(),
+            'loser_mmr_change' => "-{$mmrLoss} ({$loserMMR} → {$newLoserMMR})",
+            'mmr_difference' => $mmrDifference,
+            'coefficient_applied' => $mmrDifference > 150 ? 'LARGE_DIFF' : 'NORMAL'
+        ]);
+
+        // AFFICHAGE CONSOLE - AJOUT DE CES LIGNES
+        echo "📊 [MMR] Mise à jour des classements:\n";
+        echo "  🏆 {$winnerPlayer->getUsername()}: +{$mmrGain} MMR ({$winnerMMR} → {$newWinnerMMR})\n";
+        echo "  💀 {$loserPlayer->getUsername()}: -{$mmrLoss} MMR ({$loserMMR} → {$newLoserMMR})\n";
+        echo "  📈 Différence MMR: {$mmrDifference} | Coeff: " . ($mmrDifference > 150 ? 'LARGE_DIFF' : 'NORMAL') . "\n";
+        
+        // Créer des événements de match pour le MMR
+        $this->createMatchEvent($match, "MMR_UPDATE", 
+            " {$winnerPlayer->getUsername()} gagne +{$mmrGain} MMR ({$newWinnerMMR})"
+        );
+        $this->createMatchEvent($match, "MMR_UPDATE", 
+            " {$loserPlayer->getUsername()} perd -{$mmrLoss} MMR ({$newLoserMMR})"
+        );
     }
 }

@@ -53,6 +53,9 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private array $roles = [];
 
+    #[ORM\Column]
+    private ?int $MMR = null;
+
     public function __construct()
     {
         $this->teams = new ArrayCollection();
@@ -215,6 +218,18 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
     public function setRoles(array $roles): static
     {
         $this->roles = $roles;
+
+        return $this;
+    }
+
+    public function getMMR(): ?int
+    {
+        return $this->MMR;
+    }
+
+    public function setMMR(int $MMR): static
+    {
+        $this->MMR = $MMR;
 
         return $this;
     }
