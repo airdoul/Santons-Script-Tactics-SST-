@@ -665,6 +665,258 @@
       }
     }
   }
+
+  // =============== MODAL DE RECAP DE COMBAT ===============
+  .match-recap-modal {
+      max-width: 900px;
+      max-height: 90vh;
+      overflow-y: auto;
+      
+      .match-summary {
+          margin-bottom: 2rem;
+          
+          .teams-overview {
+              display: flex;
+              align-items: center;
+              gap: 2rem;
+              margin-bottom: 1.5rem;
+              
+              .team-card {
+                  flex: 1;
+                  background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.1));
+                  border: 2px solid rgba(139, 69, 19, 0.3);
+                  border-radius: 12px;
+                  padding: 1.5rem;
+                  text-align: center;
+                  position: relative;
+                  transition: all 0.3s ease;
+                  
+                  &.winner {
+                      background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 223, 0, 0.1));
+                      border-color: #FFD700;
+                      box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+                      
+                      .victory-badge {
+                          position: absolute;
+                          top: -10px;
+                          right: -10px;
+                          background: linear-gradient(45deg, #FFD700, #FFA500);
+                          color: #1a1a1a;
+                          padding: 0.5rem;
+                          border-radius: 50%;
+                          font-size: 0.8rem;
+                          font-weight: bold;
+                          box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                      }
+                  }
+                  
+                  &.loser {
+                      opacity: 0.7;
+                      border-color: rgba(139, 69, 19, 0.2);
+                  }
+                  
+                  .team-name {
+                      font-size: 1.2rem;
+                      font-weight: bold;
+                      color: #D2B48C;
+                      margin-bottom: 0.5rem;
+                  }
+                  
+                  .player-name {
+                      color: #8B4513;
+                      margin-bottom: 0.5rem;
+                      font-style: italic;
+                  }
+                  
+                  .team-mmr {
+                      font-weight: bold;
+                      color: #CD853F;
+                      font-size: 1.1rem;
+                  }
+              }
+              
+              .vs-separator {
+                  font-size: 1.5rem;
+                  font-weight: bold;
+                  color: #D2B48C;
+                  text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+              }
+          }
+          
+          .match-info {
+              display: flex;
+              justify-content: space-around;
+              background: rgba(139, 69, 19, 0.1);
+              border-radius: 8px;
+              padding: 1rem;
+              
+              .info-item {
+                  display: flex;
+                  align-items: center;
+                  gap: 0.5rem;
+                  color: #8B4513;
+                  
+                  i {
+                      color: #CD853F;
+                  }
+              }
+          }
+      }
+      
+      .combat-events {
+          h3 {
+              color: #D2B48C;
+              margin-bottom: 1rem;
+              display: flex;
+              align-items: center;
+              gap: 0.5rem;
+          }
+          
+          .events-timeline {
+              max-height: 400px;
+              overflow-y: auto;
+              border: 1px solid rgba(139, 69, 19, 0.3);
+              border-radius: 8px;
+              padding: 1rem;
+              background: rgba(0, 0, 0, 0.2);
+              
+              .event-item {
+                  display: flex;
+                  align-items: flex-start;
+                  gap: 1rem;
+                  margin-bottom: 1rem;
+                  padding: 0.8rem;
+                  border-radius: 8px;
+                  transition: all 0.3s ease;
+                  
+                  &:hover {
+                      background: rgba(139, 69, 19, 0.1);
+                  }
+                  
+                  .event-icon {
+                      width: 32px;
+                      height: 32px;
+                      border-radius: 50%;
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      flex-shrink: 0;
+                  }
+                  
+                  .event-content {
+                      flex: 1;
+                      
+                      .event-header {
+                          display: flex;
+                          justify-content: space-between;
+                          margin-bottom: 0.3rem;
+                          
+                          .event-actor {
+                              font-weight: bold;
+                              color: #CD853F;
+                          }
+                          
+                          .event-time {
+                              font-size: 0.8rem;
+                              color: #999;
+                          }
+                      }
+                      
+                      .event-description {
+                          color: #D2B48C;
+                          line-height: 1.4;
+                          
+                          .crit-indicator {
+                              color: #FF6B6B;
+                              font-weight: bold;
+                              animation: pulse 1s infinite;
+                          }
+                      }
+                  }
+                  
+                  // Styles spécifiques par type d'événement
+                  &.event-start .event-icon {
+                      background: linear-gradient(45deg, #4CAF50, #66BB6A);
+                      color: white;
+                  }
+                  
+                  &.event-info .event-icon {
+                      background: linear-gradient(45deg, #2196F3, #42A5F5);
+                      color: white;
+                  }
+                  
+                  &.event-round .event-icon {
+                      background: linear-gradient(45deg, #FF9800, #FFB74D);
+                      color: white;
+                  }
+                  
+                  &.event-attack .event-icon {
+                      background: linear-gradient(45deg, #F44336, #EF5350);
+                      color: white;
+                  }
+                  
+                  &.event-defense .event-icon {
+                      background: linear-gradient(45deg, #9C27B0, #BA68C8);
+                      color: white;
+                  }
+                  
+                  &.event-heal .event-icon {
+                      background: linear-gradient(45deg, #4CAF50, #66BB6A);
+                      color: white;
+                  }
+                  
+                  &.event-victory .event-icon {
+                      background: linear-gradient(45deg, #FFD700, #FFA500);
+                      color: #1a1a1a;
+                  }
+                  
+                  &.event-mmr .event-icon {
+                      background: linear-gradient(45deg, #607D8B, #90A4AE);
+                      color: white;
+                  }
+                  
+                  &.event-end .event-icon {
+                      background: linear-gradient(45deg, #795548, #8D6E63);
+                      color: white;
+                  }
+                  
+                  &.event-crit {
+                      background: linear-gradient(90deg, rgba(255, 107, 107, 0.1), transparent);
+                      border-left: 3px solid #FF6B6B;
+                  }
+              }
+          }
+      }
+  }
+
+  @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+  }
+
+  // Responsive pour le modal de recap
+  @media (max-width: 768px) {
+      .match-recap-modal {
+          .match-summary .teams-overview {
+              flex-direction: column;
+              gap: 1rem;
+              
+              .vs-separator {
+                  order: 1;
+                  margin: 0.5rem 0;
+              }
+          }
+          
+          .match-info {
+              flex-direction: column;
+              gap: 0.5rem;
+          }
+          
+          .events-timeline {
+              max-height: 300px;
+          }
+      }
+  }
 }
 
 //  RESPONSIVE DESIGN 
@@ -833,4 +1085,268 @@
     font-weight: 500;
     color: #333;
   }
+}
+// =============== MODAL DE RECAP DE COMBAT ===============
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 999999; // Plus élevé que la toolbar Symfony
+    backdrop-filter: blur(5px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #2C1810, #3D2317);
+    border: 2px solid #8B4513;
+    border-radius: 12px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: #D2B48C;
+    position: relative;
+}
+
+.modal-header {
+    background: linear-gradient(135deg, #8B4513, #A0522D);
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    
+    h2 {
+        margin: 0;
+        color: #D2B48C;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 1.2rem;
+    }
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    color: #D2B48C;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+    
+    &:hover {
+        background: rgba(255, 255, 255, 0.1);
+    }
+}
+
+.modal-body {
+    padding: 1.5rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.modal-footer {
+    background: rgba(139, 69, 19, 0.1);
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(139, 69, 19, 0.3);
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+// Styles spécifiques pour le modal de recap
+.match-recap-modal {
+    max-width: 900px;
+    
+    .teams-overview {
+        display: flex;
+        align-items: center;
+        gap: 2rem;
+        margin-bottom: 1.5rem;
+        
+        .team-card {
+            flex: 1;
+            background: linear-gradient(135deg, rgba(139, 69, 19, 0.1), rgba(160, 82, 45, 0.1));
+            border: 2px solid rgba(139, 69, 19, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            position: relative;
+            
+            &.winner {
+                background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 223, 0, 0.1));
+                border-color: #FFD700;
+                box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+                
+                .victory-badge {
+                    position: absolute;
+                    top: -10px;
+                    right: -10px;
+                    background: linear-gradient(45deg, #FFD700, #FFA500);
+                    color: #1a1a1a;
+                    padding: 0.5rem;
+                    border-radius: 50%;
+                    font-size: 0.8rem;
+                    font-weight: bold;
+                    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+                }
+            }
+            
+            .team-name {
+                font-size: 1.2rem;
+                font-weight: bold;
+                color: #D2B48C;
+                margin-bottom: 0.5rem;
+            }
+            
+            .player-name {
+                color: #8B4513;
+                margin-bottom: 0.5rem;
+                font-style: italic;
+            }
+            
+            .team-mmr {
+                font-weight: bold;
+                color: #CD853F;
+                font-size: 1.1rem;
+            }
+        }
+        
+        .vs-separator {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #D2B48C;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    }
+    
+    .match-info {
+        display: flex;
+        justify-content: space-around;
+        background: rgba(139, 69, 19, 0.1);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+        
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #8B4513;
+            
+            i {
+                color: #CD853F;
+            }
+        }
+    }
+    
+    .events-timeline {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid rgba(139, 69, 19, 0.3);
+        border-radius: 8px;
+        padding: 1rem;
+        background: rgba(0, 0, 0, 0.2);
+        
+        .event-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            padding: 0.8rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            
+            &:hover {
+                background: rgba(139, 69, 19, 0.1);
+            }
+            
+            .event-icon {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-shrink: 0;
+                
+                i {
+                    font-size: 0.9rem;
+                }
+            }
+            
+            .event-content {
+                flex: 1;
+                
+                .event-header {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 0.3rem;
+                    
+                    .event-actor {
+                        font-weight: bold;
+                        color: #CD853F;
+                    }
+                    
+                    .event-time {
+                        font-size: 0.8rem;
+                        color: #999;
+                    }
+                }
+                
+                .event-description {
+                    color: #D2B48C;
+                    line-height: 1.4;
+                }
+            }
+            
+            // Styles par type d'événement
+            &.event-start .event-icon {
+                background: linear-gradient(45deg, #4CAF50, #66BB6A);
+                color: white;
+            }
+            
+            &.event-info .event-icon {
+                background: linear-gradient(45deg, #2196F3, #42A5F5);
+                color: white;
+            }
+            
+            &.event-victory .event-icon {
+                background: linear-gradient(45deg, #FFD700, #FFA500);
+                color: #1a1a1a;
+            }
+            
+            &.event-round .event-icon {
+                background: linear-gradient(45deg, #FF9800, #FFB74D);
+                color: white;
+            }
+            
+            &.event-mmr .event-icon {
+                background: linear-gradient(45deg, #607D8B, #90A4AE);
+                color: white;
+            }
+        }
+    }
+}
+
+// Responsive
+@media (max-width: 768px) {
+    .match-recap-modal {
+        .teams-overview {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .match-info {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    }
 }

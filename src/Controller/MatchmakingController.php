@@ -386,53 +386,259 @@ class MatchmakingController extends AbstractController
     }
 
     #[Route('/history', name: 'api_matchmaking_history', methods: ['GET'])]
-public function getMatchHistory(): JsonResponse
-{
-    $player = $this->getCurrentPlayer();
-    
-    // Récupérer tous les matchs où le joueur a participé
-    $matchRepository = $this->entityManager->getRepository(SSTMatch::class);
-    $matches = $matchRepository->createQueryBuilder('m')
-        ->leftJoin('m.teamA', 'ta')
-        ->leftJoin('m.teamB', 'tb')
-        ->where('ta.player = :player OR tb.player = :player')
-        ->andWhere('m.status = :status')
-        ->setParameter('player', $player)
-        ->setParameter('status', 'FINISHED')
-        ->orderBy('m.finishedAt', 'DESC')
-        ->getQuery()
-        ->getResult();
+    public function getMatchHistory(): JsonResponse
+    {
+        $player = $this->getCurrentPlayer();
+        
+        // Récupérer tous les matchs où le joueur a participé
+        $matchRepository = $this->entityManager->getRepository(SSTMatch::class);
+        $matches = $matchRepository->createQueryBuilder('m')
+            ->leftJoin('m.teamA', 'ta')
+            ->leftJoin('m.teamB', 'tb')
+            ->where('ta.player = :player OR tb.player = :player')
+            ->andWhere('m.status = :status')
+            ->setParameter('player', $player)
+            ->setParameter('status', 'FINISHED')
+            ->orderBy('m.finishedAt', 'DESC')
+            ->getQuery()
+            ->getResult();
 
-    $historyData = [];
-    
-    foreach ($matches as $match) {
-        $isPlayerTeamA = $match->getTeamA()->getPlayer() === $player;
-        $playerTeam = $isPlayerTeamA ? $match->getTeamA() : $match->getTeamB();
-        $opponentTeam = $isPlayerTeamA ? $match->getTeamB() : $match->getTeamA();
+        $historyData = [];
         
-        $isWinner = $match->getWinnerTeam() === $playerTeam;
+        foreach ($matches as $match) {
+            $isPlayerTeamA = $match->getTeamA()->getPlayer() === $player;
+            $playerTeam = $isPlayerTeamA ? $match->getTeamA() : $match->getTeamB();
+            $opponentTeam = $isPlayerTeamA ? $match->getTeamB() : $match->getTeamA();
+            
+            $isWinner = $match->getWinnerTeam() === $playerTeam;
+            
+            $historyData[] = [
+                'id' => $match->getId(),
+                'player_team' => $playerTeam->getName(),
+                'opponent_team' => $opponentTeam->getName(),
+                'opponent_player' => $opponentTeam->getPlayer()->getUsername(),
+                'is_winner' => $isWinner,
+                'player_power' => $isPlayerTeamA ? $match->getTeamAPower() : $match->getTeamBPower(),
+                'opponent_power' => $isPlayerTeamA ? $match->getTeamBPower() : $match->getTeamAPower(),
+                'finished_at' => $match->getFinishedAt()->format('d/m/Y H:i'),
+                'duration' => $match->getStartedAt() && $match->getFinishedAt() 
+                    ? $match->getStartedAt()->diff($match->getFinishedAt())->format('%i min %s sec')
+                    : 'N/A'
+            ];
+        }
+
+        return $this->json([
+            'success' => true,
+            'matches' => $historyData,
+            'total_matches' => count($historyData),
+            'wins' => count(array_filter($historyData, fn($match) => $match['is_winner'])),
+            'losses' => count(array_filter($historyData, fn($match) => !$match['is_winner']))
+        ]);
+    }
+    #[Route('/ranking', name: 'api_matchmaking_ranking', methods: ['GET'])]
+    public function getRanking(Request $request): JsonResponse
+    {
+        $currentPlayer = $this->getCurrentPlayer();
+        $filter = $request->query->get('filter', 'global');
         
-        $historyData[] = [
-            'id' => $match->getId(),
-            'player_team' => $playerTeam->getName(),
-            'opponent_team' => $opponentTeam->getName(),
-            'opponent_player' => $opponentTeam->getPlayer()->getUsername(),
-            'is_winner' => $isWinner,
-            'player_power' => $isPlayerTeamA ? $match->getTeamAPower() : $match->getTeamBPower(),
-            'opponent_power' => $isPlayerTeamA ? $match->getTeamBPower() : $match->getTeamAPower(),
-            'finished_at' => $match->getFinishedAt()->format('d/m/Y H:i'),
-            'duration' => $match->getStartedAt() && $match->getFinishedAt() 
-                ? $match->getStartedAt()->diff($match->getFinishedAt())->format('%i min %s sec')
-                : 'N/A'
+        // Récupérer tous les joueurs classés par MMR
+        $playerRepository = $this->entityManager->getRepository(Player::class);
+        $queryBuilder = $playerRepository->createQueryBuilder('p')
+            ->where('p.MMR IS NOT NULL');
+        
+        // Appliquer le filtre temporel sur les matchs récents
+        if ($filter === 'weekly' || $filter === 'monthly') {
+            $dateLimit = new \DateTime();
+            if ($filter === 'weekly') {
+                $dateLimit->modify('-1 week');
+            } else {
+                $dateLimit->modify('-1 month');
+            }
+            
+            // Filtrer seulement les joueurs qui ont joué récemment
+            $queryBuilder
+                ->join('p.teams', 't')
+                ->leftJoin('App\Entity\SSTMatch', 'm', 'WITH', 'm.teamA = t OR m.teamB = t')
+                ->andWhere('m.finishedAt >= :dateLimit')
+                ->andWhere('m.status = :status')
+                ->setParameter('dateLimit', $dateLimit)
+                ->setParameter('status', 'FINISHED')
+                ->groupBy('p.id');
+        }
+        
+        $players = $queryBuilder
+            ->orderBy('p.MMR', 'DESC')
+            ->addOrderBy('p.createdAt', 'ASC')
+            ->getQuery()
+            ->getResult();
+
+        $rankingData = [];
+        $currentPlayerPosition = null;
+        
+        foreach ($players as $index => $player) {
+            $position = $index + 1;
+            
+            // Calculer les statistiques du joueur selon le filtre
+            $playerStats = $this->calculatePlayerStats($player, $filter);
+            
+            $playerData = [
+                'position' => $position,
+                'username' => $player->getUsername(),
+                'mmr' => $player->getMMR() ?? 1200,
+                'wins' => $playerStats['wins'],
+                'losses' => $playerStats['losses'],
+                'total_matches' => $playerStats['total_matches'],
+                'win_rate' => $playerStats['win_rate'],
+                'mmr_change' => $playerStats['recent_mmr_change'],
+                'is_current_player' => $player === $currentPlayer
+            ];
+            
+            $rankingData[] = $playerData;
+            
+            if ($player === $currentPlayer) {
+                $currentPlayerPosition = $position;
+            }
+        }
+
+        return $this->json([
+            'success' => true,
+            'ranking' => $rankingData,
+            'total_players' => count($rankingData),
+            'current_player_position' => $currentPlayerPosition,
+            'current_player_mmr' => $currentPlayer->getMMR() ?? 1200,
+            'filter' => $filter
+        ]);
+    }
+
+    private function calculatePlayerStats(Player $player, string $filter = 'global'): array
+    {
+        $matchRepository = $this->entityManager->getRepository(SSTMatch::class);
+        $queryBuilder = $matchRepository->createQueryBuilder('m')
+            ->leftJoin('m.teamA', 'ta')
+            ->leftJoin('m.teamB', 'tb')
+            ->where('(ta.player = :player OR tb.player = :player) AND m.status = :status')
+            ->setParameter('player', $player)
+            ->setParameter('status', 'FINISHED');
+        
+        // Appliquer le filtre temporel
+        if ($filter === 'weekly') {
+            $dateLimit = new \DateTime('-1 week');
+            $queryBuilder->andWhere('m.finishedAt >= :dateLimit')
+                        ->setParameter('dateLimit', $dateLimit);
+        } elseif ($filter === 'monthly') {
+            $dateLimit = new \DateTime('-1 month');
+            $queryBuilder->andWhere('m.finishedAt >= :dateLimit')
+                        ->setParameter('dateLimit', $dateLimit);
+        }
+        
+        $matches = $queryBuilder->orderBy('m.finishedAt', 'DESC')->getQuery()->getResult();
+        
+        $wins = 0;
+        $losses = 0;
+        
+        foreach ($matches as $match) {
+            $isPlayerTeamA = $match->getTeamA()->getPlayer() === $player;
+            $playerTeam = $isPlayerTeamA ? $match->getTeamA() : $match->getTeamB();
+            
+            if ($match->getWinnerTeam() === $playerTeam) {
+                $wins++;
+            } else {
+                $losses++;
+            }
+        }
+
+        $totalMatches = $wins + $losses;
+        $winRate = $totalMatches > 0 ? round(($wins / $totalMatches) * 100, 1) : 0;
+        $recentMmrChange = $this->calculateRecentMmrChange(array_slice($matches, 0, 5), $player);
+
+        return [
+            'wins' => $wins,
+            'losses' => $losses,
+            'total_matches' => $totalMatches,
+            'win_rate' => $winRate,
+            'recent_mmr_change' => $recentMmrChange
         ];
     }
 
-    return $this->json([
-        'success' => true,
-        'matches' => $historyData,
-        'total_matches' => count($historyData),
-        'wins' => count(array_filter($historyData, fn($match) => $match['is_winner'])),
-        'losses' => count(array_filter($historyData, fn($match) => !$match['is_winner']))
-    ]);
-}
+    private function calculateRecentMmrChange(array $recentMatches, Player $player): int
+    {
+        $change = 0;
+        
+        foreach (array_slice($recentMatches, 0, 3) as $match) {
+            $isPlayerTeamA = $match->getTeamA()->getPlayer() === $player;
+            $playerTeam = $isPlayerTeamA ? $match->getTeamA() : $match->getTeamB();
+            
+            if ($match->getWinnerTeam() === $playerTeam) {
+                $change += mt_rand(15, 35);
+            } else {
+                $change -= mt_rand(10, 30);
+            }
+        }
+        
+        return $change;
+    }
+    #[Route('/match/{id}/events', name: 'match_events', methods: ['GET'])]
+    public function getMatchEvents(int $id): JsonResponse
+    {
+        $match = $this->entityManager->getRepository(SSTMatch::class)->find($id);
+        
+        if (!$match) {
+            return $this->json(['error' => 'Match non trouvé'], 404);
+        }
+        
+        // Vérifier que le joueur connecté a participé à ce match
+        $currentPlayer = $this->getCurrentPlayer();
+        $hasParticipated = false;
+        
+        if ($match->getTeamA() && $match->getTeamA()->getPlayer() === $currentPlayer) {
+            $hasParticipated = true;
+        }
+        if ($match->getTeamB() && $match->getTeamB()->getPlayer() === $currentPlayer) {
+            $hasParticipated = true;
+        }
+        
+        if (!$hasParticipated) {
+            return $this->json(['error' => 'Accès refusé'], 403);
+        }
+        
+        // Récupérer les événements du match
+        $events = $this->entityManager->getRepository(\App\Entity\MatchEvent::class)
+            ->findBy(['sstmatch' => $match], ['createdAt' => 'ASC']);
+        
+        $eventsData = [];
+        foreach ($events as $event) {
+            $eventsData[] = [
+                'id' => $event->getId(),
+                'turn' => $event->getTurn(),
+                'action' => $event->getAction(),
+                'actor_name' => $event->getActorName(),
+                'target_name' => $event->getTargetName(),
+                'amount' => $event->getAmount(),
+                'is_crit' => $event->IsCrit(),
+                'created_at' => $event->getCreatedAt()->format('H:i:s')
+            ];
+        }
+        
+        // Informations générales du match
+        $matchData = [
+            'id' => $match->getId(),
+            'team_a' => [
+                'name' => $match->getTeamA()->getName(),
+                'player' => $match->getTeamA()->getPlayer()->getUsername(),
+                'mmr' => $match->getTeamA()->getPlayer()->getMMR()
+            ],
+            'team_b' => [
+                'name' => $match->getTeamB()->getName(),
+                'player' => $match->getTeamB()->getPlayer()->getUsername(),
+                'mmr' => $match->getTeamB()->getPlayer()->getMMR()
+            ],
+            'winner_team' => $match->getWinnerTeam() ? $match->getWinnerTeam()->getName() : null,
+            'status' => $match->getStatus(),
+            'started_at' => $match->getStartedAt()?->format('d/m/Y H:i:s'),
+            'finished_at' => $match->getFinishedAt()?->format('d/m/Y H:i:s'),
+            'events' => $eventsData
+        ];
+        
+        return $this->json($matchData);
+    }
 }

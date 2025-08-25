@@ -3,14 +3,13 @@
 class GameInterface {
     constructor() {
         this.currentTab = 'team';
-        this.team = [null, null, null];
         this.init();
     }
 
     init() {
         this.setupTabs();
+        this.setupRankingFilters();
         this.loadCharacters();
-        this.updateTeamDisplay();
     }
 
     // =============== SYSTÈME D'ONGLETS ===============
@@ -36,6 +35,9 @@ class GameInterface {
 
         this.currentTab = tabName;
 
+        if (tabName === 'ranking') {
+            this.loadRanking(); // AJOUTEZ CETTE LIGNE
+        }
         // Actions spécifiques par onglet
         switch(tabName) {
             case 'characters':
@@ -47,64 +49,6 @@ class GameInterface {
             case 'history':
                 this.loadMatchHistory();
                 break;
-        }
-    }
-
-    // =============== GESTION DE L'ÉQUIPE ===============
-    // updateTeamDisplay() {
-    //     const slots = document.querySelectorAll('.character-slot');
-        
-    //     slots.forEach((slot, index) => {
-    //         const character = this.team[index];
-    //         const placeholder = slot.querySelector('.slot-placeholder');
-            
-    //         if (character) {
-    //             placeholder.innerHTML = `
-    //                 <div class="character-info">
-    //                     <h4>${character.name}</h4>
-    //                     <span class="character-role">${character.role}</span>
-    //                     <button class="remove-character" data-slot="${index}">
-    //                         <i class="fas fa-times"></i>
-    //                     </button>
-    //                 </div>
-    //             `;
-                
-    //             slot.classList.add('occupied');
-                
-    //             const removeBtn = slot.querySelector('.remove-character');
-    //             removeBtn?.addEventListener('click', (e) => {
-    //                 e.stopPropagation();
-    //                 this.removeFromTeam(index);
-    //             });
-    //         } else {
-    //             placeholder.innerHTML = `
-    //                 <i class="fas fa-plus"></i>
-    //                 <span>Héros ${index + 1}</span>
-    //             `;
-    //             slot.classList.remove('occupied');
-                
-    //             // Ajouter l'événement d'ajout
-    //             slot.onclick = () => this.openCharacterSelection(index);
-    //         }
-    //     });
-
-    //     this.updateBattleTab();
-    // }
-
-    addToTeam(character, slotIndex) {
-        if (this.team[slotIndex] === null) {
-            this.team[slotIndex] = character;
-            this.updateTeamDisplay();
-            this.showNotification(`${character.name} ajouté à l'équipe !`, 'success');
-        }
-    }
-
-    removeFromTeam(slotIndex) {
-        if (this.team[slotIndex] !== null) {
-            const character = this.team[slotIndex];
-            this.team[slotIndex] = null;
-            this.updateTeamDisplay();
-            this.showNotification(`${character.name} retiré de l'équipe`, 'info');
         }
     }
 
@@ -148,20 +92,7 @@ class GameInterface {
                     <span class="stat-value">${character.power}</span>
                 </div>
             </div>
-            <button class="add-character-btn" ${this.hasEmptySlot() ? '' : 'disabled'}>
-                <i class="fas fa-plus"></i> Ajouter
-            </button>
         `;
-
-        const addBtn = card.querySelector('.add-character-btn');
-        addBtn?.addEventListener('click', () => {
-            if (this.hasEmptySlot()) {
-                const slotIndex = this.getFirstEmptySlot();
-                this.addToTeam(character, slotIndex);
-            } else {
-                this.showNotification('Votre équipe est complète !', 'warning');
-            }
-        });
 
         return card;
     }
@@ -173,7 +104,6 @@ class GameInterface {
         
     //     if (!searchBtn || !infoText) return;
         
-    //     const teamSize = this.team.filter(char => char !== null).length;
         
     //     if (teamSize === 3) {
     //         searchBtn.disabled = false;
@@ -252,8 +182,16 @@ class GameInterface {
                             </div>
                         </div>
                         <div class="match-meta">
-                            <span class="match-date">${match.finished_at}</span>
-                            <span class="match-duration">${match.duration}</span>
+                            <div class="match-info">
+                                <span class="match-date">${match.finished_at}</span>
+                                <span class="match-duration">${match.duration}</span>
+                            </div>
+                            <div class="match-actions">
+                                <button class="btn btn-recap" onclick="gameInterface.showMatchRecap(${match.id})" title="Voir le recap du combat">
+                                    <i class="fas fa-eye"></i>
+                                    <span>Recap</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
@@ -269,18 +207,6 @@ class GameInterface {
     }
 
     // =============== UTILITAIRES ===============
-    hasEmptySlot() {
-        return this.team.includes(null);
-    }
-
-    getFirstEmptySlot() {
-        return this.team.indexOf(null);
-    }
-
-    openCharacterSelection(slotIndex) {
-        this.switchTab('characters');
-        this.showNotification(`Sélectionnez un personnage pour la position ${slotIndex + 1}`, 'info');
-    }
 
     showNotification(message, type = 'info') {
         const notification = document.createElement('div');
@@ -313,16 +239,377 @@ class GameInterface {
         };
         return icons[type] || 'info-circle';
     }
+
+    // =============== CLASSEMENT ===============
+
+    setupRankingFilters() {
+        const filterButtons = document.querySelectorAll('.ranking-btn');
+        
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Désactiver tous les boutons
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                
+                // Activer le bouton cliqué
+                button.classList.add('active');
+                
+                // Charger le classement avec le filtre
+                const filter = button.dataset.filter;
+                this.loadRanking(filter);
+            });
+        });
+    }
+
+    async loadRanking(filter = 'global') {
+        const rankingContainer = document.querySelector('#ranking-list');
+        if (!rankingContainer) return;
+        
+        // Afficher un indicateur de chargement
+        rankingContainer.innerHTML = '<p class="loading-text"><i class="fas fa-spinner fa-spin"></i> Chargement du classement...</p>';
+        
+        try {
+            const response = await fetch(`/api/matchmaking/ranking?filter=${filter}`);
+            const data = await response.json();
+            
+            if (!data.success || data.ranking.length === 0) {
+                let emptyMessage = 'Aucun joueur classé pour le moment';
+                if (filter === 'weekly') emptyMessage = 'Aucun match joué cette semaine';
+                if (filter === 'monthly') emptyMessage = 'Aucun match joué ce mois-ci';
+                
+                rankingContainer.innerHTML = `<p class="empty-ranking">${emptyMessage}</p>`;
+                return;
+            }
+            
+            // Mettre à jour la position du joueur actuel
+            this.updateUserPosition(data.current_player_position, data.current_player_mmr);
+            
+            // Construire le classement
+            let rankingHTML = `<div class="top-players">`;
+            
+            // Top 3 avec design spécial
+            for (let i = 0; i < Math.min(3, data.ranking.length); i++) {
+                const player = data.ranking[i];
+                const topClass = i === 0 ? 'top-1' : i === 1 ? 'top-2' : 'top-3';
+                const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : 'bronze';
+                const rankIcon = i === 0 ? 'crown' : i === 1 ? 'medal' : 'award';
+                const changeClass = player.mmr_change >= 0 ? 'positive' : 'negative';
+                const changeSign = player.mmr_change >= 0 ? '+' : '';
+                
+                rankingHTML += `
+                    <div class="ranking-entry ${topClass} ${player.is_current_player ? 'current-player' : ''}">
+                        <span class="rank ${rankClass}"><i class="fas fa-${rankIcon}"></i> ${player.position}</span>
+                        <div class="player-info">
+                            <span class="player-name">${player.username}</span>
+                            <div class="player-stats">
+                                <span class="rating"><i class="fas fa-star"></i> ${player.mmr}</span>
+                                <span class="wins"><i class="fas fa-trophy"></i> ${player.wins}V</span>
+                                <span class="losses"><i class="fas fa-times"></i> ${player.losses}D</span>
+                            </div>
+                        </div>
+                        <span class="rating-change ${changeClass}">${changeSign}${player.mmr_change}</span>
+                    </div>
+                `;
+            }
+            
+            rankingHTML += '</div><div class="other-players">';
+            
+            // Autres joueurs (position 4+)
+            for (let i = 3; i < data.ranking.length; i++) {
+                const player = data.ranking[i];
+                const changeClass = player.mmr_change >= 0 ? 'positive' : 'negative';
+                const changeSign = player.mmr_change >= 0 ? '+' : '';
+                
+                rankingHTML += `
+                    <div class="ranking-entry ${player.is_current_player ? 'current-player' : ''}">
+                        <span class="rank">#${player.position}</span>
+                        <div class="player-info">
+                            <span class="player-name">${player.username}</span>
+                            <div class="player-stats">
+                                <span class="rating"><i class="fas fa-star"></i> ${player.mmr}</span>
+                                <span class="wins"><i class="fas fa-trophy"></i> ${player.wins}V</span>
+                                <span class="losses"><i class="fas fa-times"></i> ${player.losses}D</span>
+                            </div>
+                        </div>
+                        <span class="rating-change ${changeClass}">${changeSign}${player.mmr_change}</span>
+                    </div>
+                `;
+                
+                // Afficher seulement les 10 premiers, puis un bouton "Voir plus"
+                if (i >= 9) {
+                    rankingHTML += `
+                        <div class="ranking-more">
+                            <button class="load-more-btn" onclick="gameInterface.loadMoreRanking(${i + 1})">
+                                <i class="fas fa-chevron-down"></i> Voir plus de joueurs
+                            </button>
+                        </div>
+                    `;
+                    break;
+                }
+            }
+            
+            rankingHTML += '</div>';
+            rankingContainer.innerHTML = rankingHTML;
+            
+        } catch (error) {
+            console.error('Erreur lors du chargement du classement:', error);
+            rankingContainer.innerHTML = '<p class="error-text">Erreur lors du chargement du classement</p>';
+        }
+    }
+
+    updateUserPosition(position, mmr) {
+        const userPositionElement = document.querySelector('.position-number');
+        const userRatingElement = document.querySelector('.rating-text');
+        
+        if (userPositionElement) {
+            userPositionElement.textContent = `#${position || '?'}`;
+        }
+        
+        if (userRatingElement) {
+            userRatingElement.textContent = `${mmr || 1200} pts`;
+        }
+    }
+
+    loadMoreRanking(startIndex) {
+        console.log('Charger plus de joueurs à partir de:', startIndex);
+        this.showNotification('Fonctionnalité bientôt disponible !', 'info');
+    }
+
+    // =============== SYSTÈME DE RECAP DE COMBAT ===============
+    async showMatchRecap(matchId) {
+        try {
+            const response = await fetch(`/api/matchmaking/match/${matchId}/events`);
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const matchData = await response.json();
+            this.displayMatchRecapModal(matchData);
+            
+        } catch (error) {
+            console.error('Erreur lors du chargement du recap:', error);
+            this.showNotification('Erreur lors du chargement du recap du combat', 'error');
+        }
+    }
+
+    displayMatchRecapModal(matchData) {
+        // Créer le contenu du modal
+        const modalHTML = `
+            <div class="modal-overlay" id="match-recap-modal">
+                <div class="modal-content match-recap-modal">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-scroll"></i> Recap du Combat</h2>
+                        <button class="modal-close" onclick="this.closeMatchRecap()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="modal-body">
+                        <div class="match-summary">
+                            <div class="teams-overview">
+                                <div class="team-card ${matchData.winner_team === matchData.team_a.name ? 'winner' : 'loser'}">
+                                    <div class="team-name">${matchData.team_a.name}</div>
+                                    <div class="player-name">${matchData.team_a.player}</div>
+                                    <div class="team-mmr">${matchData.team_a.mmr} MMR</div>
+                                    ${matchData.winner_team === matchData.team_a.name ? '<div class="victory-badge"><i class="fas fa-crown"></i> VICTOIRE</div>' : ''}
+                                </div>
+                                
+                                <div class="vs-separator">
+                                    <span>VS</span>
+                                </div>
+                                
+                                <div class="team-card ${matchData.winner_team === matchData.team_b.name ? 'winner' : 'loser'}">
+                                    <div class="team-name">${matchData.team_b.name}</div>
+                                    <div class="player-name">${matchData.team_b.player}</div>
+                                    <div class="team-mmr">${matchData.team_b.mmr} MMR</div>
+                                    ${matchData.winner_team === matchData.team_b.name ? '<div class="victory-badge"><i class="fas fa-crown"></i> VICTOIRE</div>' : ''}
+                                </div>
+                            </div>
+                            
+                            <div class="match-info">
+                                <div class="info-item">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>Début: ${matchData.started_at || 'N/A'}</span>
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-flag-checkered"></i>
+                                    <span>Fin: ${matchData.finished_at || 'N/A'}</span>
+                                </div>
+                                <div class="info-item">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span>Statut: ${matchData.status}</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="combat-events">
+                            <h3><i class="fas fa-list"></i> Déroulement du Combat</h3>
+                            <div class="events-timeline">
+                                ${this.generateEventsHTML(matchData.events)}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="this.closeMatchRecap()">
+                            <i class="fas fa-times"></i> Fermer
+                        </button>
+                        <button class="btn btn-primary" onclick="this.shareMatchRecap(${matchData.id})">
+                            <i class="fas fa-share"></i> Partager
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Ajouter le modal au DOM
+        document.body.insertAdjacentHTML('beforeend', modalHTML);
+        
+        // Ajouter l'event listener pour fermer
+        const modal = document.getElementById('match-recap-modal');
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                this.closeMatchRecap();
+            }
+        });
+    }
+
+    generateEventsHTML(events) {
+        let eventsHTML = '';
+        
+        events.forEach((event, index) => {
+            let eventClass = 'event-item';
+            let eventIcon = 'fas fa-circle';
+            
+            // Définir l'icône et la classe selon le type d'action
+            switch (event.action) {
+                case 'COMBAT_START':
+                    eventIcon = 'fas fa-play';
+                    eventClass += ' event-start';
+                    break;
+                case 'TEAM_PRESENTATION':
+                    eventIcon = 'fas fa-users';
+                    eventClass += ' event-info';
+                    break;
+                case 'ROUND_START':
+                    eventIcon = 'fas fa-sword';
+                    eventClass += ' event-round';
+                    break;
+                case 'ATTACK':
+                    eventIcon = 'fas fa-fist-raised';
+                    eventClass += ' event-attack';
+                    break;
+                case 'DEFENSE':
+                    eventIcon = 'fas fa-shield-alt';
+                    eventClass += ' event-defense';
+                    break;
+                case 'HEALING':
+                    eventIcon = 'fas fa-heart';
+                    eventClass += ' event-heal';
+                    break;
+                case 'VICTORY':
+                    eventIcon = 'fas fa-trophy';
+                    eventClass += ' event-victory';
+                    break;
+                case 'MMR_UPDATE':
+                    eventIcon = 'fas fa-chart-line';
+                    eventClass += ' event-mmr';
+                    break;
+                case 'COMBAT_END':
+                    eventIcon = 'fas fa-stop';
+                    eventClass += ' event-end';
+                    break;
+                default:
+                    eventIcon = 'fas fa-info';
+                    eventClass += ' event-default';
+            }
+            
+            // Formatage spécial pour les critiques
+            if (event.is_crit) {
+                eventClass += ' event-crit';
+            }
+            
+            // Formatage du montant s'il existe
+            let amountText = '';
+            if (event.amount !== null) {
+                amountText = ` (${event.amount})`;
+            }
+            
+            eventsHTML += `
+                <div class="${eventClass}" data-event-index="${index}">
+                    <div class="event-icon">
+                        <i class="${eventIcon}"></i>
+                    </div>
+                    <div class="event-content">
+                        <div class="event-header">
+                            <span class="event-actor">${event.actor_name}</span>
+                            <span class="event-time">${event.created_at}</span>
+                        </div>
+                        <div class="event-description">
+                            ${event.target_name}${amountText}
+                            ${event.is_crit ? ' <span class="crit-indicator">CRITIQUE!</span>' : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        return eventsHTML;
+    }
+
+    closeMatchRecap() {
+        const modal = document.getElementById('match-recap-modal');
+        if (modal) {
+            modal.remove();
+        }
+    }
+
+    shareMatchRecap(matchId) {
+        // Copier le lien vers le presse-papier
+        const shareUrl = `${window.location.origin}/match/${matchId}/recap`;
+        
+        if (navigator.clipboard) {
+            navigator.clipboard.writeText(shareUrl).then(() => {
+                this.showNotification('Lien de partage copié !', 'success');
+            }).catch(() => {
+                this.showNotification('Erreur lors de la copie', 'error');
+            });
+        } else {
+            // Fallback pour les navigateurs plus anciens
+            const textArea = document.createElement('textarea');
+            textArea.value = shareUrl;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                this.showNotification('Lien de partage copié !', 'success');
+            } catch (err) {
+                this.showNotification('Erreur lors de la copie', 'error');
+            }
+            document.body.removeChild(textArea);
+        }
+    }
 }
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {
     try {
-        if (document.querySelector('.game-interface')) {
-            window.gameInterface = new GameInterface();
-            console.log(' Interface de jeu Santons Script Tactics initialisée');
-        }
+        // Attendre un peu que le DOM soit complètement chargé
+        setTimeout(() => {
+            const gameInterfaceElement = document.querySelector('.game-interface');
+            console.log('Élément game-interface trouvé:', gameInterfaceElement);
+            
+            if (gameInterfaceElement) {
+                window.gameInterface = new GameInterface();
+                console.log(' Interface de jeu Santons Script Tactics initialisée');
+                console.log('Instance créée:', window.gameInterface);
+            } else {
+                console.warn(' Élément .game-interface non trouvé dans le DOM');
+                // Créer l'instance quand même pour les fonctions globales
+                window.gameInterface = new GameInterface();
+                console.log('Instance créée sans vérification DOM');
+            }
+        }, 100);
     } catch (error) {
-        console.warn('Erreur lors de l\'initialisation de l\'interface de jeu:', error);
+        console.error('Erreur lors de l\'initialisation de l\'interface de jeu:', error);
     }
 });

@@ -10,7 +10,8 @@ import './navbar.js';
 import './JS/game-interface.js';
 import './JS/guild-guide.js';
 import './JS/theme-system.js';
-import './JS/ranking-system.js';
+// import './JS/ranking-system.js'; // desactivation du classement gérer par le JS ( il est en php et en JS dans game-interface.js a la ligne 320 ) je l'ai pas encore supprimé au cas ou on en ai encore besoin mais il faudra le faire a la fin
+
 import './JS/debugMatch.js';
 import './JS/matchmaking-system.js';
 import './JS/team-management.js'
