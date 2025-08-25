@@ -2,9 +2,12 @@
 
 namespace App\Controller;
 
+use App\Entity\Team;
+use App\Entity\Player;
 use App\Entity\SSTMatch;
 use App\Entity\QueueTicket;
-use App\Entity\Player;
+use App\Entity\CharacterInstance;
+use App\Entity\CharacterTemplate;
 use App\Repository\TeamRepository;
 use App\Service\MatchmakingService;
 use Doctrine\ORM\EntityManagerInterface;
@@ -200,4 +203,236 @@ class MatchmakingController extends AbstractController
             'matches' => $results
         ]);
     }
+    #[Route('/team', name: 'api_matchmaking_team', methods: ['GET'])]
+    public function getPlayerTeam(TeamRepository $teamRepository): JsonResponse
+    {
+        $player = $this->getCurrentPlayer();
+        $team = $teamRepository->findOneBy(['player' => $player]);
+        
+        if (!$team) {
+            return $this->json([
+                'team' => null,
+                'characters' => []
+            ]);
+        }
+
+        $characters = [];
+        foreach ($team->getCharacterInstances() as $instance) {
+            $template = $instance->getTemplate();
+            $characters[] = [
+                'id' => $template->getId(),
+                'name' => $template->getName(),
+                'role' => $template->getRole(),
+                'hp' => $template->getHp(),
+                'atk' => $template->getAtk(),
+                'def' => $template->getDef(),
+                'spd' => $template->getSpd(),
+                'heal' => $template->getHeal(),
+                'crit' => $template->getCrit(),
+                'critDmg' => $template->getCritDmg()
+            ];
+        }
+
+        return $this->json([
+            'team' => [
+                'id' => $team->getId(),
+                'name' => $team->getName(),
+                'isLocked' => $team->isLocked()
+            ],
+            'characters' => $characters
+        ]);
+    }
+
+    #[Route('/characters', name: 'api_matchmaking_characters', methods: ['GET'])]
+    public function getAvailableCharacters(): JsonResponse
+    {
+        $characterRepository = $this->entityManager->getRepository(\App\Entity\CharacterTemplate::class);
+        $characters = $characterRepository->findAll();
+        
+        $data = array_map(function($character) {
+            return [
+                'id' => $character->getId(),
+                'name' => $character->getName(),
+                'role' => $character->getRole(),
+                'hp' => $character->getHp(),
+                'atk' => $character->getAtk(),
+                'def' => $character->getDef(),
+                'spd' => $character->getSpd(),
+                'heal' => $character->getHeal(),
+                'crit' => $character->getCrit(),
+                'critDmg' => $character->getCritDmg()
+            ];
+        }, $characters);
+
+        return $this->json($data);
+    }
+    #[Route('/team/create', name: 'api_matchmaking_team_create', methods: ['POST'])]
+    public function createTeam(Request $request): JsonResponse
+    {
+        $player = $this->getCurrentPlayer();
+        
+        // Vérifier si le joueur a déjà une équipe
+        $existingTeam = $this->entityManager->getRepository(Team::class)
+            ->findOneBy(['player' => $player]);
+            
+        if ($existingTeam) {
+            return $this->json(['error' => 'Vous avez déjà une équipe'], 400);
+        }
+
+        $data = json_decode($request->getContent(), true);
+        $teamName = $data['name'] ?? 'Équipe de ' . $player->getUsername();
+
+        $team = new Team();
+        $team->setPlayer($player);
+        $team->setName($teamName);
+        $team->setIsLocked(false);
+        $team->setCreatedAt(new \DateTimeImmutable());
+
+        $this->entityManager->persist($team);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'success' => true,
+            'team' => [
+                'id' => $team->getId(),
+                'name' => $team->getName(),
+                'isLocked' => $team->isLocked()
+            ]
+        ]);
+    }
+
+    #[Route('/team/add-character', name: 'api_matchmaking_team_add_character', methods: ['POST'])]
+    public function addCharacterToTeam(Request $request): JsonResponse
+    {
+        $player = $this->getCurrentPlayer();
+        $data = json_decode($request->getContent(), true);
+        
+        $characterId = $data['character_id'] ?? null;
+        
+        if (!$characterId) {
+            return $this->json(['error' => 'Character ID requis'], 400);
+        }
+
+        $character = $this->entityManager->getRepository(\App\Entity\CharacterTemplate::class)->find($characterId);
+        if (!$character) {
+            return $this->json(['error' => 'Personnage non trouvé'], 404);
+        }
+
+        $team = $this->entityManager->getRepository(Team::class)->findOneBy(['player' => $player]);
+        if (!$team) {
+            return $this->json(['error' => 'Aucune équipe trouvée'], 404);
+        }
+
+        // Vérifier si l'équipe n'est pas pleine (max 3 personnages)
+        if (count($team->getCharacterInstances()) >= 3) {
+            return $this->json(['error' => 'Équipe complète (3 personnages maximum)'], 400);
+        }
+
+        // Vérifier si le personnage n'est pas déjà dans l'équipe
+        foreach ($team->getCharacterInstances() as $instance) {
+            if ($instance->getTemplate()->getId() === $character->getId()) {
+                return $this->json(['error' => 'Ce personnage est déjà dans votre équipe'], 400);
+            }
+        }
+
+        $characterInstance = new \App\Entity\CharacterInstance();
+        $characterInstance->setTeam($team);
+        $characterInstance->setTemplate($character);
+
+        $this->entityManager->persist($characterInstance);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'success' => true,
+            'message' => $character->getName() . ' ajouté à votre équipe'
+        ]);
+    }
+
+    #[Route('/team/remove-character', name: 'api_matchmaking_team_remove_character', methods: ['POST'])]
+    public function removeCharacterFromTeam(Request $request): JsonResponse
+    {
+        $player = $this->getCurrentPlayer();
+        $data = json_decode($request->getContent(), true);
+        
+        $characterId = $data['character_id'] ?? null;
+        
+        if (!$characterId) {
+            return $this->json(['error' => 'Character ID requis'], 400);
+        }
+
+        $instanceRepository = $this->entityManager->getRepository(\App\Entity\CharacterInstance::class);
+        $instance = $instanceRepository->createQueryBuilder('ci')
+            ->join('ci.team', 't')
+            ->join('ci.template', 'ct')
+            ->where('t.player = :player')
+            ->andWhere('ct.id = :characterId')
+            ->setParameter('player', $player)
+            ->setParameter('characterId', $characterId)
+            ->getQuery()
+            ->getOneOrNullResult();
+
+        if (!$instance) {
+            return $this->json(['error' => 'Personnage non trouvé dans votre équipe'], 404);
+        }
+
+        $characterName = $instance->getTemplate()->getName();
+        $this->entityManager->remove($instance);
+        $this->entityManager->flush();
+
+        return $this->json([
+            'success' => true,
+            'message' => $characterName . ' retiré de votre équipe'
+        ]);
+    }
+
+    #[Route('/history', name: 'api_matchmaking_history', methods: ['GET'])]
+public function getMatchHistory(): JsonResponse
+{
+    $player = $this->getCurrentPlayer();
+    
+    // Récupérer tous les matchs où le joueur a participé
+    $matchRepository = $this->entityManager->getRepository(SSTMatch::class);
+    $matches = $matchRepository->createQueryBuilder('m')
+        ->leftJoin('m.teamA', 'ta')
+        ->leftJoin('m.teamB', 'tb')
+        ->where('ta.player = :player OR tb.player = :player')
+        ->andWhere('m.status = :status')
+        ->setParameter('player', $player)
+        ->setParameter('status', 'FINISHED')
+        ->orderBy('m.finishedAt', 'DESC')
+        ->getQuery()
+        ->getResult();
+
+    $historyData = [];
+    
+    foreach ($matches as $match) {
+        $isPlayerTeamA = $match->getTeamA()->getPlayer() === $player;
+        $playerTeam = $isPlayerTeamA ? $match->getTeamA() : $match->getTeamB();
+        $opponentTeam = $isPlayerTeamA ? $match->getTeamB() : $match->getTeamA();
+        
+        $isWinner = $match->getWinnerTeam() === $playerTeam;
+        
+        $historyData[] = [
+            'id' => $match->getId(),
+            'player_team' => $playerTeam->getName(),
+            'opponent_team' => $opponentTeam->getName(),
+            'opponent_player' => $opponentTeam->getPlayer()->getUsername(),
+            'is_winner' => $isWinner,
+            'player_power' => $isPlayerTeamA ? $match->getTeamAPower() : $match->getTeamBPower(),
+            'opponent_power' => $isPlayerTeamA ? $match->getTeamBPower() : $match->getTeamAPower(),
+            'finished_at' => $match->getFinishedAt()->format('d/m/Y H:i'),
+            'duration' => $match->getStartedAt() && $match->getFinishedAt() 
+                ? $match->getStartedAt()->diff($match->getFinishedAt())->format('%i min %s sec')
+                : 'N/A'
+        ];
+    }
+
+    return $this->json([
+        'success' => true,
+        'matches' => $historyData,
+        'total_matches' => count($historyData),
+        'wins' => count(array_filter($historyData, fn($match) => $match['is_winner'])),
+        'losses' => count(array_filter($historyData, fn($match) => !$match['is_winner']))
+    ]);
+}
 }

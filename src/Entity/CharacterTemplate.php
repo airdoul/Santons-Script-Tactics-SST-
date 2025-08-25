@@ -214,4 +214,40 @@ class CharacterTemplate
     {
         return $this->name ?? 'Character #' . $this->id;
     }
+
+    public function getHp(): ?int
+    {
+        return $this->baseHP;
+    }
+
+    public function getAtk(): ?int
+    {
+        return $this->baseAtk;
+    }
+
+    public function getDef(): ?float
+    {
+        return $this->baseDef;
+    }
+
+    public function getSpd(): ?int
+    {
+        return $this->baseSpd;
+    }
+
+    public function getHeal(): ?int
+    {
+        return $this->baseHeal;
+    }
+
+    public function getCrit(): ?float
+    {
+        return $this->baseCrit;
+    }
+
+    public function getCritDmg(): ?float
+    {
+        return $this->baseCritDmg;
+    }
+
 }

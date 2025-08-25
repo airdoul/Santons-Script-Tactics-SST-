@@ -11,6 +11,8 @@ import './JS/game-interface.js';
 import './JS/guild-guide.js';
 import './JS/theme-system.js';
 import './JS/ranking-system.js';
-import './JS/debugMatch.js'
+import './JS/debugMatch.js';
+import './JS/matchmaking-system.js';
+import './JS/team-management.js'
 
 console.log('📦 [APP] Application principale chargée avec système de classement');

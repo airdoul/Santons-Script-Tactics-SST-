@@ -7,6 +7,17 @@
 @use 'components/auth-forms';
 @use 'sass:color';
 
+
+
+// style des pages
+@use 'pages/homepage';
+
+
+
+
+
+
+
 //  STYLES GLOBAUX A INTEGRER DANS LE SCSS ET SORTIR DE APP.SCSS
 * {
   margin: 0;

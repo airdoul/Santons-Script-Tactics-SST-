@@ -22,7 +22,7 @@ class CombatService
 
     public function simulateCombat(SSTMatch $match): void
     {
-        $this->logger->info('🥊 Début du combat', [
+        $this->logger->info(' Début du combat', [
             'match_id' => $match->getId(),
             'team_a' => $match->getTeamA()->getName(),
             'team_b' => $match->getTeamB()->getName()
@@ -58,7 +58,7 @@ class CombatService
         $this->entityManager->persist($match);
         $this->entityManager->flush();
 
-        $this->logger->info('🏆 Combat terminé', [
+        $this->logger->info(' Combat terminé', [
             'match_id' => $match->getId(),
             'winner' => $match->getWinnerTeam() ? $match->getWinnerTeam()->getName() : 'Égalité',
             'team_a_power' => $teamAPower,
@@ -125,10 +125,10 @@ class CombatService
                 $this->performCharacterAction($match, $character, $round, 'B');
             }
 
-            $this->createMatchEvent($match, "ROUND_END", "🏁 Fin du tour $round");
+            $this->createMatchEvent($match, "ROUND_END", " Fin du tour $round");
         }
 
-        $this->createMatchEvent($match, "COMBAT_END", "🎯 Calcul du résultat final...");
+        $this->createMatchEvent($match, "COMBAT_END", " Calcul du résultat final...");
     }
 
     private function performCharacterAction(SSTMatch $match, CharacterInstance $character, int $round, string $team): void
