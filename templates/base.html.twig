@@ -50,8 +50,10 @@
                         
                         {# Groupe de droite #}
                         <div class="nav-right">
-                            {% if app.user %}
+                        {% if app.user and is_granted('ROLE_ADMIN') %}
                                 <li><a href="{{ path('admin') }}" class="dropdown-item"><i class="fas fa-cog"></i> Administration</a></li>
+                        {% endif %}
+                            {% if app.user %}
                                 <li><a href="#" class="dropdown-item"><i class="fas fa-trophy"></i> Classements</a></li>
                                 <li><a href="#" class="dropdown-item"><i class="fas fa-user-circle"></i> Profil</a></li>
                                 <li><a href="{{ path('app_logout') }}" class="dropdown-item logout-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
