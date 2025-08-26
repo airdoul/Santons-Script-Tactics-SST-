@@ -38,11 +38,11 @@
                         <div class="nav-left">
                             <li><a href="{{ path('app_homepage') }}" class="dropdown-item"><i class="fas fa-home"></i> Accueil</a></li>
                             {% if app.user %}
-                                <li><a href="#" class="dropdown-item"><i class="fas fa-sword"></i> Combat</a></li>
-                                <li><a href="#" class="dropdown-item"><i class="fas fa-users"></i> Mon Équipe</a></li>
+                                <li><a href="{{ path('app_matchmaking') }}" class="dropdown-item"><i class="fas fa-sword"></i> Combat</a></li>
+                                <li><a href="{{ path('app_matchmaking') }}" class="dropdown-item"><i class="fas fa-users"></i> Mon Équipe</a></li>
                             {% else %}
                                 <li><a href="#" class="dropdown-item"><i class="fas fa-question-circle"></i> Comment Jouer</a></li>
-                                <li><a href="#" class="dropdown-item"><i class="fas fa-user-friends"></i> Personnages</a></li>
+                                <li><a href="{{ path('app_matchmaking') }}" class="dropdown-item"><i class="fas fa-user-friends"></i> Personnages</a></li>
                             {% endif %}
                         </div>
                         
@@ -59,8 +59,8 @@
                                 <li><a href="{{ path('app_logout') }}" class="dropdown-item logout-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
                             {% else %}
                                 <li><a href="#" class="dropdown-item"><i class="fas fa-trophy"></i> Classements</a></li>
-                                <li><a href="#" class="dropdown-item"><i class="fas fa-user-plus"></i> S'inscrire</a></li>
-                                <li><a href="#" class="dropdown-item"><i class="fas fa-sign-in-alt"></i> Connexion</a></li>
+                                <li><a href="{{ path('app_register') }}" class="dropdown-item"><i class="fas fa-user-plus"></i> S'inscrire</a></li>
+                                <li><a href="{{ path('app_login') }}" class="dropdown-item"><i class="fas fa-sign-in-alt"></i> Connexion</a></li>
                             {% endif %}
                         </div>
                     </ul>
@@ -78,13 +78,13 @@
                 <div class="mobile-menu-content">
                     {% if app.user %}
                         <a href="{{ path('app_homepage') }}" class="mobile-nav-link"><i class="fas fa-home"></i> Accueil</a>
-                        <a href="#" class="mobile-nav-link"><i class="fas fa-sword"></i> Combat</a>
-                        <a href="#" class="mobile-nav-link"><i class="fas fa-users"></i> Mon Équipe</a>
-                        <a href="#" class="mobile-nav-link"><i class="fas fa-user-friends"></i> Personnages</a>
+                        <a href="{{ path('app_matchmaking') }}" class="mobile-nav-link"><i class="fas fa-sword"></i> Combat</a>
+                        <a href="{{ path('app_matchmaking') }}" class="mobile-nav-link"><i class="fas fa-users"></i> Mon Équipe</a>
+                        <a href="{{ path('app_matchmaking') }}" class="mobile-nav-link"><i class="fas fa-user-friends"></i> Personnages</a>
                         {% if path('app_matchmaking') is defined %}
                             <a href="{{ path('app_matchmaking') }}" class="mobile-nav-link"><i class="fas fa-search"></i> Matchmaking</a>
                         {% endif %}
-                        <a href="#" class="mobile-nav-link"><i class="fas fa-history"></i> Historique</a>
+                        <a href="{{ path('app_matchmaking') }}" class="mobile-nav-link"><i class="fas fa-history"></i> Historique</a>
                         <a href="#" class="mobile-nav-link"><i class="fas fa-trophy"></i> Classements</a>
                         <a href="#" class="mobile-nav-link"><i class="fas fa-user-circle"></i> Profil</a>
                         
@@ -92,7 +92,7 @@
                     {% else %}
                         <a href="{{ path('app_homepage') }}" class="mobile-nav-link"><i class="fas fa-home"></i> Accueil</a>
                         <a href="#" class="mobile-nav-link"><i class="fas fa-question-circle"></i> Comment Jouer</a>
-                        <a href="#" class="mobile-nav-link"><i class="fas fa-user-friends"></i> Personnages</a>
+                        <a href="{{ path('app_matchmaking') }}" class="mobile-nav-link"><i class="fas fa-user-friends"></i> Personnages</a>
                         <a href="#" class="mobile-nav-link"><i class="fas fa-trophy"></i> Classements</a>
                         <a href="{{ path('app_register') }}" class="mobile-nav-link"><i class="fas fa-user-plus"></i> Créer un Compte</a>
                         <a href="{{ path('app_login') }}" class="mobile-nav-link"><i class="fas fa-sign-in-alt"></i> Se Connecter</a>
