@@ -14,3 +14,6 @@ php bin/console messenger:consume async -vv
 le lancer pour qu'il tourne en fond ( COMMANDE A UTILISE PAR DEFAUT) :
 php bin/console messenger:consume async --time-limit=3600
 
+
+NE pas oublier de bloquer les connexion veers les pages d'api 
+

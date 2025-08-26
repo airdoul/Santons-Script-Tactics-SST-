@@ -22,6 +22,11 @@ class DashboardController extends AbstractDashboardController
     {
         $user = $this->getUser();
         
+        // Vérifier si l'utilisateur a le droit d'accéder à l'admin
+        if (!$user || !$this->isGranted('ROLE_ADMIN')) {
+            return $this->render('admin/access_denied.html.twig');
+        }
+        
         return $this->render('admin/dashboard.html.twig');
     }
 

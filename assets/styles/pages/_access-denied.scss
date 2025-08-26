@@ -1,0 +1,111 @@
+/* ===============================================
+   CSS pour la page d'accès refusé - Admin
+   =============================================== */
+
+/* Animation pour l'icône */
+.fa-shield-alt {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* Effet hover sur les boutons */
+.btn:hover {
+    transform: translateY(-2px);
+    transition: all 0.1s ease;
+}
+
+/* Amélioration visuelle de la carte */
+.card {
+    border-radius: 15px;
+    transition: all 0.1s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Empêcher le scroll sur cette page */
+body {
+    overflow: hidden;
+}
+
+/* Bouton extra-small personnalisé */
+.btn-xs {
+    padding: 0.25rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    line-height: 1.2 !important;
+    border-radius: 0.2rem !important;
+    
+    i {
+        font-size: 0.7rem !important;
+        margin-right: 0.3rem !important;
+    }
+}
+
+/* Styles pour le bouton troll */
+.troll-button {
+    position: fixed !important;
+    transition: all 0.3s ease-in-out;
+    cursor: pointer;
+    z-index: 9999;
+    width: 200px;
+    left: 50%;
+    top: 60%;
+    transform: translateX(-50%);
+    pointer-events: auto !important; /* Force les événements sur le bouton troll */
+    
+    &.moving {
+        transition: all 0.5s ease-in-out;
+    }
+}
+
+/* Rendre la box principale transparente pour ne pas limiter la zone */
+.card {
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    pointer-events: none; /* Permet au bouton de passer à travers */
+}
+
+.card-body * {
+    pointer-events: auto; /* Réactive les clics pour le contenu */
+}
+
+/* Messages troll */
+.troll-message {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(255, 0, 0, 0.9);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    z-index: 2000;
+    font-weight: bold;
+    animation: fadeInOut 3s ease-in-out;
+}
+
+@keyframes fadeInOut {
+    0% { 
+        opacity: 0; 
+        transform: translateX(-50%) translateY(-20px); 
+    }
+    20% { 
+        opacity: 1; 
+        transform: translateX(-50%) translateY(0); 
+    }
+    80% { 
+        opacity: 1; 
+        transform: translateX(-50%) translateY(0); 
+    }
+    100% { 
+        opacity: 0; 
+        transform: translateX(-50%) translateY(-20px); 
+    }
+}
