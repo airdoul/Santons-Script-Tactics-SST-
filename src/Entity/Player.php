@@ -121,7 +121,10 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        return ['ROLE_USER'];
+        $roles = $this->roles;
+        // On ajoute ROLE_USER par défaut
+        $roles[] = 'ROLE_USER';
+        return array_unique($roles);
     }
 
     public function eraseCredentials(): void

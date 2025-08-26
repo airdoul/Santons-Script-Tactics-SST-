@@ -2,23 +2,26 @@
 
 namespace App\Controller\Admin;
 
-use App\Entity\Player;
 use App\Entity\Team;
-use App\Entity\CharacterTemplate;
-use App\Entity\CharacterInstance;
+use App\Entity\Player;
 use App\Entity\SSTMatch;
 use App\Entity\QueueTicket;
-use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
-use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
-use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
-use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
+use App\Entity\CharacterInstance;
+use App\Entity\CharacterTemplate;
 use Symfony\Component\HttpFoundation\Response;
+use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
+use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
+use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
+use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 
 #[AdminDashboard(routePath: '/admin', routeName: 'admin')]
 class DashboardController extends AbstractDashboardController
 {
     public function index(): Response
     {
+        $user = $this->getUser();
+        
         return $this->render('admin/dashboard.html.twig');
     }
 

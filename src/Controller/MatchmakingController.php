@@ -5,11 +5,13 @@ namespace App\Controller;
 use App\Entity\Team;
 use App\Entity\Player;
 use App\Entity\SSTMatch;
+use App\Entity\MatchEvent;
 use App\Entity\QueueTicket;
 use App\Entity\CharacterInstance;
 use App\Entity\CharacterTemplate;
 use App\Repository\TeamRepository;
 use App\Service\MatchmakingService;
+use App\Service\MatchmakingScheduler;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
@@ -40,7 +42,7 @@ class MatchmakingController extends AbstractController
     }
 
     #[Route('/join', name: 'matchmaking_join', methods: ['POST'])]
-    public function joinQueue(Request $request, TeamRepository $teamRepository): JsonResponse
+    public function joinQueue(Request $request, TeamRepository $teamRepository, MatchmakingScheduler $scheduler): JsonResponse
     {
         $data = json_decode($request->getContent(), true);
         $teamId = $data['team_id'] ?? null;
@@ -59,6 +61,9 @@ class MatchmakingController extends AbstractController
         try {
             $ticket = $this->matchmakingService->joinQueue($currentPlayer, $team);
             
+            // Déclencher le traitement du matchmaking
+            $scheduler->scheduleProcessing('player_joined');
+            
             return $this->json([
                 'success' => true,
                 'message' => 'Ajouté à la file d\'attente',
@@ -75,12 +80,15 @@ class MatchmakingController extends AbstractController
     }
 
     #[Route('/cancel', name: 'matchmaking_cancel', methods: ['POST'])]
-    public function cancelQueue(): JsonResponse
+    public function cancelQueue(MatchmakingScheduler $scheduler): JsonResponse
     {
         $currentPlayer = $this->getCurrentPlayer();
         $success = $this->matchmakingService->cancelQueue($currentPlayer);
         
         if ($success) {
+            // Même si un joueur quitte, on peut vouloir retraiter pour optimiser les matches
+            $scheduler->scheduleProcessing('player_left');
+            
             return $this->json([
                 'success' => true, 
                 'message' => 'Recherche annulée',
@@ -107,14 +115,14 @@ class MatchmakingController extends AbstractController
     }
 
     #[Route('/process', name: 'matchmaking_process', methods: ['POST'])]
-    public function processQueue(): JsonResponse
+    public function processQueue(MatchmakingScheduler $scheduler): JsonResponse
     {
-        // route call par la commande
-        $matches = $this->matchmakingService->processQueue();
+        // Cette route peut être appelée manuellement ou par cron
+        $scheduler->scheduleImmediateProcessing('manual_trigger');
         
         return $this->json([
-            'matches_created' => count($matches),
-            'message' => sprintf('%d nouveaux matchs créés', count($matches))
+            'success' => true,
+            'message' => 'Traitement du matchmaking déclenché'
         ]);
     }
 
@@ -619,7 +627,7 @@ class MatchmakingController extends AbstractController
             ];
         }
         
-        // Informations générales du match
+        // info du match
         $matchData = [
             'id' => $match->getId(),
             'team_a' => [
@@ -640,5 +648,24 @@ class MatchmakingController extends AbstractController
         ];
         
         return $this->json($matchData);
+    }
+
+    #[Route('/admin/matchmaking/process', name: 'admin_matchmaking_process', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function processMatchmaking(MatchmakingScheduler $scheduler): JsonResponse
+    {
+        $scheduler->scheduleImmediateProcessing('admin_manual');
+        
+        return $this->json([
+            'success' => true,
+            'message' => 'Matchmaking processing scheduled'
+        ]);
+    }
+
+    #[Route('/admin/matchmaking/status', name: 'admin_matchmaking_status', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function getMatchmakingStatus(MatchmakingScheduler $scheduler): JsonResponse
+    {
+        return $this->json($scheduler->getStatus());
     }
 }
