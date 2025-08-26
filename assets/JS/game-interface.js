@@ -398,7 +398,7 @@ class GameInterface {
                 <div class="modal-content match-recap-modal">
                     <div class="modal-header">
                         <h2><i class="fas fa-scroll"></i> Recap du Combat</h2>
-                        <button class="modal-close" onclick="this.closeMatchRecap()">
+                        <button class="modal-close" id="modal-close-btn">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -450,10 +450,10 @@ class GameInterface {
                     </div>
                     
                     <div class="modal-footer">
-                        <button class="btn btn-secondary" onclick="this.closeMatchRecap()">
+                        <button class="btn btn-secondary" id="modal-fermer-btn">
                             <i class="fas fa-times"></i> Fermer
                         </button>
-                        <button class="btn btn-primary" onclick="this.shareMatchRecap(${matchData.id})">
+                        <button class="btn btn-primary" id="modal-partager-btn" data-match-id="${matchData.id}">
                             <i class="fas fa-share"></i> Partager
                         </button>
                     </div>
@@ -464,13 +464,50 @@ class GameInterface {
         // Ajouter le modal au DOM
         document.body.insertAdjacentHTML('beforeend', modalHTML);
         
-        // Ajouter l'event listener pour fermer
+        // Récupérer les éléments du modal
         const modal = document.getElementById('match-recap-modal');
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                this.closeMatchRecap();
+        const closeBtn = document.getElementById('modal-close-btn');
+        const fermerBtn = document.getElementById('modal-fermer-btn');
+        const partagerBtn = document.getElementById('modal-partager-btn');
+        
+        // Event listeners pour fermer la modal
+        const closeModal = () => this.closeMatchRecap();
+        
+        // Fermer en cliquant sur la croix
+        if (closeBtn) {
+            closeBtn.addEventListener('click', closeModal);
+        }
+        
+        // Fermer en cliquant sur le bouton "Fermer"
+        if (fermerBtn) {
+            fermerBtn.addEventListener('click', closeModal);
+        }
+        
+        // Partager le match
+        if (partagerBtn) {
+            partagerBtn.addEventListener('click', () => {
+                const matchId = partagerBtn.getAttribute('data-match-id');
+                this.shareMatchRecap(matchId);
+            });
+        }
+        
+        // Fermer en cliquant sur l'overlay (fond noir)
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+        }
+        
+        // Fermer avec la touche Escape
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escapeHandler);
             }
-        });
+        };
+        document.addEventListener('keydown', escapeHandler);
     }
 
     generateEventsHTML(events) {
