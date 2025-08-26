@@ -303,6 +303,6 @@ class TeamManagement {
 document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('.game-interface')) {
         window.teamManagement = new TeamManagement();
-        console.log('✅ Système de gestion d\'équipe initialisé');
+        console.log(' Système de gestion d\'équipe initialisé');
     }
 });
