@@ -121,8 +121,17 @@ class MatchmakingService
         ];
     }
 
+    public function getQueueSize(): int
+    {
+        return $this->entityManager
+            ->getRepository(QueueTicket::class)
+            ->count(['status' => 'SEARCHING']);
+    }
+
     public function processQueue(): array
     {
+        $startTime = microtime(true); // AJOUTER CETTE LIGNE
+        
         $tickets = $this->entityManager->getRepository(QueueTicket::class)
             ->findBy(['status' => 'SEARCHING'], ['createdAt' => 'ASC']);
 
@@ -133,7 +142,12 @@ class MatchmakingService
 
         if (count($tickets) === 0) {
             $this->logger->info(' [MATCHMAKING] Aucun ticket en attente');
-            return [];
+            return [
+                'matches_created' => 0,
+                'players_waiting' => 0,
+                'processing_time' => microtime(true) - $startTime,
+                'timestamp' => time()
+            ];
         }
 
         if (count($tickets) === 1) {
@@ -141,7 +155,12 @@ class MatchmakingService
                 'player' => $tickets[0]->getPlayer()->getUsername(),
                 'waiting_since' => $tickets[0]->getCreatedAt()->format('H:i:s')
             ]);
-            return [];
+            return [
+                'matches_created' => 0,
+                'players_waiting' => 1,
+                'processing_time' => microtime(true) - $startTime,
+                'timestamp' => time()
+            ];
         }
 
         $this->logger->info(' [MATCHMAKING] Recherche de matchs compatibles...', [
@@ -166,23 +185,12 @@ class MatchmakingService
                 }
 
                 $mmrDiff = abs($ticket1->getMmr() - $ticket2->getMmr());
-                
-                $this->logger->debug(' [MATCHMAKING] Comparaison MMR', [
-                    'player1' => $ticket1->getPlayer()->getUsername(),
-                    'player2' => $ticket2->getPlayer()->getUsername(),
-                    'mmr1' => $ticket1->getMmr(),
-                    'mmr2' => $ticket2->getMmr(),
-                    'difference' => $mmrDiff
-                ]);
 
-                // vérifier la compatibilité MMR
                 if ($mmrDiff <= 200) {
                     $this->logger->info(' [MATCHMAKING] Match compatible trouvé !', [
                         'player1' => $ticket1->getPlayer()->getUsername(),
                         'player2' => $ticket2->getPlayer()->getUsername(),
-                        'mmr_difference' => $mmrDiff,
-                        'team1' => $ticket1->getTeam()->getName(),
-                        'team2' => $ticket2->getTeam()->getName()
+                        'mmr_diff' => $mmrDiff
                     ]);
 
                     $match = $this->createMatch($ticket1, $ticket2);
@@ -190,6 +198,7 @@ class MatchmakingService
                     
                     $processedTickets[] = $ticket1->getId();
                     $processedTickets[] = $ticket2->getId();
+                    
                     break;
                 } else {
                     $this->logger->debug(' [MATCHMAKING] MMR incompatible', [
@@ -202,16 +211,22 @@ class MatchmakingService
             }
         }
 
+        $matchesCreated = count($matches); // AJOUTER CETTE LIGNE
+
         $this->logger->info(' [MATCHMAKING] Traitement terminé', [
-            'matches_created' => count($matches),
+            'matches_created' => $matchesCreated,
             'tickets_processed' => count($processedTickets),
             'tickets_remaining' => count($tickets) - count($processedTickets),
             'timestamp' => (new \DateTime())->format('H:i:s')
         ]);
 
-        return $matches;
+        return [
+            'matches_created' => $matchesCreated,
+            'players_waiting' => $this->getQueueSize(),
+            'processing_time' => microtime(true) - $startTime,
+            'timestamp' => time()
+        ];
     }
-
     private function createMatch(QueueTicket $ticket1, QueueTicket $ticket2): SSTMatch
     {
         $rngSeed = rand(1000, 9999);
