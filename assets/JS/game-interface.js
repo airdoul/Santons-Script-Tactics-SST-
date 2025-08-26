@@ -62,12 +62,12 @@ class GameInterface {
 
         // Personnages d'exemple
         const sampleCharacters = [
-            { id: 1, name: 'Garde Royal', role: 'Tank', power: 150 },
-            { id: 2, name: 'Archer Mystique', role: 'DPS', power: 180 },
-            { id: 3, name: 'Clerc Divin', role: 'Support', power: 120 },
-            { id: 4, name: 'Mage de Bataille', role: 'DPS', power: 200 },
-            { id: 5, name: 'Paladin', role: 'Tank', power: 170 },
-            { id: 6, name: 'Druide', role: 'Support', power: 140 }
+            { id: 1, name: 'Garde Royal', role: 'Tank', power: 150,  },
+            { id: 2, name: 'Archer Mystique', role: 'DPS', power: 180,  },
+            { id: 3, name: 'Clerc Divin', role: 'Support', power: 120,  },
+            { id: 4, name: 'Mage de Bataille', role: 'DPS', power: 200,  },
+            { id: 5, name: 'Paladin', role: 'Tank', power: 170,  },
+            { id: 6, name: 'Druide', role: 'Support', power: 140,  }
         ];
 
         setTimeout(() => {
