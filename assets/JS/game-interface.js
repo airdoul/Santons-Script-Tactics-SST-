@@ -10,9 +10,22 @@ class GameInterface {
         this.setupTabs();
         this.setupRankingFilters();
         this.loadCharacters();
+        this.checkUrlTab(); // Vérifier si un onglet est spécifié dans l'URL
     }
 
     // =============== SYSTÈME D'ONGLETS ===============
+    checkUrlTab() {
+        // Vérifier si un onglet est spécifié dans l'URL (fragment ou paramètre)
+        const urlFragment = window.location.hash.replace('#', '');
+        const urlParams = new URLSearchParams(window.location.search);
+        const tabParam = urlParams.get('tab');
+        
+        const targetTab = urlFragment || tabParam;
+        
+        if (targetTab && ['team', 'characters', 'battle', 'ranking', 'history'].includes(targetTab)) {
+            this.switchTab(targetTab);
+        }
+    }
     setupTabs() {
         const tabButtons = document.querySelectorAll('.tab-button');
         
