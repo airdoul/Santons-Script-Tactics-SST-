@@ -18,7 +18,6 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route('/api/matchmaking')]
-#[IsGranted('ROLE_USER')]
 class MatchmakingController extends AbstractController
 {
     private MatchmakingService $matchmakingService;
@@ -116,6 +115,41 @@ class MatchmakingController extends AbstractController
         $scheduler->scheduleImmediateProcessing('manual_trigger');
         
         return $this->json(['success' => true]);
+    }
+
+    #[Route('/status-public', name: 'api_matchmaking_status', methods: ['GET'])]
+    public function getApiMatchmakingStatus(): JsonResponse
+    {
+        try {
+            // Récupérer les statistiques de la queue de matchmaking
+            $queueRepository = $this->entityManager->getRepository(QueueTicket::class);
+            $playersInQueue = $queueRepository->count(['status' => 'SEARCHING']);
+            
+            // Récupérer les matchs récents pour les statistiques
+            $matchRepository = $this->entityManager->getRepository(SSTMatch::class);
+            $recentMatches = $matchRepository->createQueryBuilder('m')
+                ->where('m.finishedAt >= :since')
+                ->setParameter('since', new \DateTime('-1 hour'))
+                ->getQuery()
+                ->getResult();
+
+            return $this->json([
+                'success' => true,
+                'data' => [
+                    'players_in_queue' => $playersInQueue,
+                    'recent_matches' => count($recentMatches),
+                    'queue_active' => $playersInQueue > 0,
+                    'server_time' => (new \DateTime())->format('Y-m-d H:i:s'),
+                    'status' => $playersInQueue > 0 ? 'ACTIVE' : 'IDLE'
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return $this->json([
+                'success' => false,
+                'error' => 'Erreur lors de la récupération du statut',
+                'message' => $e->getMessage()
+            ], 500);
+        }
     }
 
     #[Route('/debug', name: 'matchmaking_debug', methods: ['GET'])]

@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Debug - SST</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; }
+        .test-section { margin: 1rem 0; padding: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; }
+        button { margin: 0.5rem; padding: 0.5rem 1rem; }
+        #api-result, #dom-result { margin-top: 0.5rem; padding: 0.5rem; border: 1px solid #ddd; background: #f8f9fa; }
+    </style>
+</head>
+<body>
+    <h1>Test Debug - Santons Script Tactics</h1>
+    
+    <div class="test-section info">
+        <h2>1. Test API Matchmaking</h2>
+        <button onclick="testAPI()">Tester API /api/matchmaking/status</button>
+        <div id="api-result"></div>
+    </div>
+
+    <div class="test-section info">
+        <h2>2. Test DOM Elements</h2>
+        <button onclick="testDOMElements()">Tester éléments DOM</button>
+        <div id="dom-result"></div>
+        
+        <!-- Éléments de test pour DOM -->
+        <div id="test-character" class="character-sprite" style="width: 50px; height: 50px; background: #007bff; margin: 1rem 0;"></div>
+        <div id="combat-log" style="height: 100px; border: 1px solid #ccc; overflow-y: auto; margin: 1rem 0;"></div>
+    </div>
+
+    <div class="test-section info">
+        <h2>3. Test Image Loading</h2>
+        <button onclick="testImageLoading()">Tester chargement images</button>
+        <div id="image-result"></div>
+        <img id="test-image" style="max-width: 100px; margin: 1rem 0; display: none;" />
+    </div>
+
+    <script>
+        // Test API
+        async function testAPI() {
+            const resultDiv = document.getElementById('api-result');
+            try {
+                const response = await fetch('/api/matchmaking/status-public');
+                const data = await response.json();
+                
+                if (response.ok && data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            ✅ API fonctionne !<br>
+                            Status: ${data.data.status}<br>
+                            Joueurs en queue: ${data.data.players_in_queue}<br>
+                            Matchs récents: ${data.data.recent_matches}<br>
+                            Server time: ${data.data.server_time}
+                        </div>
+                    `;
+                    resultDiv.className = 'success';
+                } else {
+                    resultDiv.innerHTML = `<div class="error">❌ Erreur API: ${data.error || 'Inconnue'}</div>`;
+                    resultDiv.className = 'error';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur réseau: ${error.message}</div>`;
+                resultDiv.className = 'error';
+            }
+        }
+
+        // Test éléments DOM
+        function testDOMElements() {
+            const resultDiv = document.getElementById('dom-result');
+            let results = [];
+            
+            // Test des éléments critiques
+            const testElements = [
+                'test-character',
+                'combat-log'
+            ];
+            
+            testElements.forEach(elementId => {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    results.push(`✅ ${elementId}: Trouvé`);
+                    
+                    // Test classList si élément existe
+                    try {
+                        element.classList.add('test-class');
+                        element.classList.remove('test-class');
+                        results.push(`✅ ${elementId}: classList fonctionne`);
+                    } catch (error) {
+                        results.push(`❌ ${elementId}: Erreur classList - ${error.message}`);
+                    }
+                } else {
+                    results.push(`❌ ${elementId}: Non trouvé`);
+                }
+            });
+            
+            // Test de la fonction animateCharacterAction simulée
+            try {
+                const character = document.getElementById('test-character');
+                if (character) {
+                    simulateCharacterAnimation(character);
+                    results.push(`✅ Animation de personnage: Fonctionne`);
+                }
+            } catch (error) {
+                results.push(`❌ Animation de personnage: ${error.message}`);
+            }
+            
+            resultDiv.innerHTML = results.join('<br>');
+            resultDiv.className = results.some(r => r.includes('❌')) ? 'error' : 'success';
+        }
+
+        // Simulation de l'animation de personnage
+        function simulateCharacterAnimation(element) {
+            if (!element) {
+                throw new Error('Élément null fourni');
+            }
+            
+            // Test sécurisé de classList (comme dans notre correction)
+            if (element.classList) {
+                element.classList.add('attacking');
+                setTimeout(() => {
+                    if (element && element.classList) {
+                        element.classList.remove('attacking');
+                    }
+                }, 1000);
+            } else {
+                throw new Error('classList non disponible');
+            }
+        }
+
+        // Test chargement d'images
+        function testImageLoading() {
+            const resultDiv = document.getElementById('image-result');
+            const testImg = document.getElementById('test-image');
+            
+            // Test de l'image guild-guide.png (corrigée)
+            const imagePath = '/images/guild-guide.png';
+            
+            testImg.onload = function() {
+                resultDiv.innerHTML = `<div class="success">✅ Image chargée: ${imagePath}</div>`;
+                resultDiv.className = 'success';
+                testImg.style.display = 'block';
+            };
+            
+            testImg.onerror = function() {
+                resultDiv.innerHTML = `<div class="error">❌ Erreur de chargement: ${imagePath}</div>`;
+                resultDiv.className = 'error';
+                testImg.style.display = 'none';
+            };
+            
+            testImg.src = imagePath;
+        }
+
+        // Auto-test au chargement
+        window.addEventListener('load', function() {
+            setTimeout(() => {
+                testAPI();
+                testDOMElements();
+                testImageLoading();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
