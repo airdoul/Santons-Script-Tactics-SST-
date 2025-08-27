@@ -3,6 +3,8 @@
 
 @use 'components/navbar';
 @use 'components/game-interface';
+@use 'components/combat-visualization';
+@use 'components/combat-pending-notification';
 @use 'components/guild-guide';
 @use 'components/theme-system';
 @use 'components/ranking';
