@@ -58,6 +58,10 @@ class GameInterface {
                 break;
             case 'battle':
                 this.updateBattleTab();
+                // Également appeler la méthode de team-management si elle existe
+                if (window.teamManagement && typeof window.teamManagement.updateBattleTab === 'function') {
+                    window.teamManagement.updateBattleTab();
+                }
                 break;
             case 'history':
                 this.loadMatchHistory();

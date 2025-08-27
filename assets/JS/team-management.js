@@ -57,10 +57,13 @@ class TeamManagement {
             const response = await fetch('/api/matchmaking/team');
             const data = await response.json();
             
+            console.log('loadPlayerTeam response:', data);
+            
             this.playerTeam = data.team;
             this.updateTeamDisplay(data.characters);
             
             if (!this.playerTeam) {
+                console.log('No team found, creating automatically...');
                 await this.createTeamAutomatically();
             }
         } catch (error) {
@@ -132,7 +135,14 @@ class TeamManagement {
             }
         });
         
+        // Forcer la mise à jour du bouton bataille avec un délai plus long
         this.updateBattleTab();
+        setTimeout(() => {
+            this.updateBattleTab();
+        }, 200);
+        setTimeout(() => {
+            this.updateBattleTab();
+        }, 500);
     }
 
     // =============== GESTION DES PERSONNAGES ===============
@@ -201,6 +211,11 @@ class TeamManagement {
                 this.showNotification(data.message, 'success');
                 await this.loadPlayerTeam(); // Recharger l'équipe
                 this.switchTab('team'); // Retourner à l'onglet équipe
+                
+                // Forcer la mise à jour du bouton bataille après un délai
+                setTimeout(() => {
+                    this.updateBattleTab();
+                }, 100);
             } else {
                 this.showNotification(data.error, 'error');
             }
@@ -223,6 +238,11 @@ class TeamManagement {
             if (data.success) {
                 this.showNotification(data.message, 'info');
                 await this.loadPlayerTeam(); // Recharger l'équipe
+                
+                // Forcer la mise à jour du bouton bataille après un délai
+                setTimeout(() => {
+                    this.updateBattleTab();
+                }, 100);
             } else {
                 this.showNotification(data.error, 'error');
             }
@@ -242,11 +262,22 @@ class TeamManagement {
         const teamSize = document.querySelectorAll('.character-slot.occupied').length;
         
         if (teamSize === 3 && this.playerTeam) {
+            console.log('ENABLING BUTTON: teamSize=3, playerTeam exists');
             searchBtn.disabled = false;
+            searchBtn.classList.remove('disabled');
+            searchBtn.removeAttribute('disabled');
             searchBtn.dataset.teamId = this.playerTeam.id;
             infoText.textContent = 'Votre équipe est prête ! Trouvez un adversaire.';
+            console.log('Button state after enabling:', {
+                disabled: searchBtn.disabled,
+                hasDisabledAttr: searchBtn.hasAttribute('disabled'),
+                hasDisabledClass: searchBtn.classList.contains('disabled')
+            });
         } else {
+            console.log('DISABLING BUTTON: teamSize=' + teamSize + ', hasPlayerTeam=' + !!this.playerTeam);
             searchBtn.disabled = true;
+            searchBtn.classList.add('disabled');
+            searchBtn.setAttribute('disabled', 'disabled');
             if (!this.playerTeam) {
                 infoText.textContent = 'Chargement de votre équipe...';
             } else {

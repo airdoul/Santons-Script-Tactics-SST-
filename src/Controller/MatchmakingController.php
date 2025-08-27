@@ -45,15 +45,24 @@ class MatchmakingController extends AbstractController
         $data = json_decode($request->getContent(), true);
         $teamId = $data['team_id'] ?? null;
 
+        $currentPlayer = $this->getCurrentPlayer();
+
+        // Si pas de team_id fourni, chercher l'équipe du joueur
         if (!$teamId) {
-            return $this->json(['error' => 'Team ID requis'], 400);
+            $team = $teamRepository->findOneBy(['player' => $currentPlayer]);
+            if (!$team) {
+                return $this->json(['error' => 'Vous devez d\'abord créer une équipe'], 400);
+            }
+        } else {
+            $team = $teamRepository->find($teamId);
+            if (!$team || $team->getPlayer() !== $currentPlayer) {
+                return $this->json(['error' => 'Équipe non trouvée ou non autorisée'], 404);
+            }
         }
 
-        $team = $teamRepository->find($teamId);
-        $currentPlayer = $this->getCurrentPlayer();
-        
-        if (!$team || $team->getPlayer() !== $currentPlayer) {
-            return $this->json(['error' => 'Équipe non trouvée ou non autorisée'], 404);
+        // Vérifier que l'équipe a bien 3 personnages
+        if (count($team->getCharacterInstances()) < 3) {
+            return $this->json(['error' => 'Votre équipe doit avoir exactement 3 personnages pour participer'], 400);
         }
 
         try {
@@ -65,7 +74,9 @@ class MatchmakingController extends AbstractController
             return $this->json([
                 'success' => true,
                 'message' => 'Ajouté à la file d\'attente',
-                'ticket_id' => $ticket->getId()
+                'ticket_id' => $ticket->getId(),
+                'team_id' => $team->getId(),
+                'team_name' => $team->getName()
             ]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
@@ -107,6 +118,64 @@ class MatchmakingController extends AbstractController
         return $this->json(['success' => true]);
     }
 
+    #[Route('/debug', name: 'matchmaking_debug', methods: ['GET'])]
+    public function getDebugInfo(): JsonResponse
+    {
+        try {
+            $currentPlayer = $this->getCurrentPlayer();
+            
+            // récupère les ticket en attente
+            $queueTickets = $this->entityManager->getRepository(QueueTicket::class)
+                ->findBy(['status' => 'SEARCHING'], ['createdAt' => 'ASC']);
+            
+            // récupère les match récent
+            $recentMatches = $this->entityManager->getRepository(SSTMatch::class)
+                ->findBy([], ['id' => 'DESC'], 5);
+
+            $debugData = [
+                'timestamp' => (new \DateTime())->format('H:i:s'),
+                'queue_count' => count($queueTickets),
+                'queue_tickets' => array_map(function($ticket) {
+                    $waitingTime = (new \DateTime())->getTimestamp() - $ticket->getCreatedAt()->getTimestamp();
+                    return [
+                        'id' => $ticket->getId(),
+                        'player' => $ticket->getPlayer()->getUsername(),
+                        'team' => $ticket->getTeam()->getName(),
+                        'status' => $ticket->getStatus(),
+                        'mmr' => $ticket->getMmr(),
+                        'waiting_time' => $waitingTime . 's',
+                        'created_at' => $ticket->getCreatedAt()->format('H:i:s')
+                    ];
+                }, $queueTickets),
+                'recent_matches' => array_map(function($match) {
+                    return [
+                        'id' => $match->getId(),
+                        'team_a' => $match->getTeamA()->getName(),
+                        'team_b' => $match->getTeamB()->getName(),
+                        'status' => $match->getStatus(),
+                        'rng_seed' => $match->getRngSeed()
+                    ];
+                }, $recentMatches),
+                'system_info' => [
+                    'current_user' => $currentPlayer->getUsername(),
+                    'current_user_id' => $currentPlayer->getId(),
+                    'current_user_email' => $currentPlayer->getEmail(),
+                    'total_players' => count($this->entityManager->getRepository(Player::class)->findAll()),
+                    'total_matches' => count($this->entityManager->getRepository(SSTMatch::class)->findAll())
+                ]
+            ];
+
+            return $this->json($debugData);
+            
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Erreur lors de la récupération des données de debug',
+                'message' => $e->getMessage(),
+                'timestamp' => (new \DateTime())->format('H:i:s')
+            ], 500);
+        }
+    }
+
 
 
     #[Route('/results', name: 'matchmaking_results', methods: ['GET'])]
@@ -127,6 +196,7 @@ class MatchmakingController extends AbstractController
         }
         
         return $this->json([
+            'total_matches' => count($results),
             'matches' => $results
         ]);
     }
@@ -164,9 +234,13 @@ class MatchmakingController extends AbstractController
             'team' => [
                 'id' => $team->getId(),
                 'name' => $team->getName(),
-                'isLocked' => $team->isLocked()
+                'isLocked' => $team->isLocked(),
+                'character_count' => count($team->getCharacterInstances()),
+                'is_complete' => count($team->getCharacterInstances()) >= 3
             ],
-            'characters' => $characters
+            'characters' => $characters,
+            'total_characters' => count($characters),
+            'can_start_battle' => count($characters) >= 3
         ]);
     }
 
@@ -269,45 +343,67 @@ class MatchmakingController extends AbstractController
         $this->entityManager->persist($characterInstance);
         $this->entityManager->flush();
 
+        // Recompter après l'ajout
+        $currentCount = count($team->getCharacterInstances());
+
         return $this->json([
-            'success' => true
+            'success' => true,
+            'message' => $character->getName() . ' ajouté à votre équipe',
+            'team_character_count' => $currentCount,
+            'is_team_complete' => $currentCount >= 3,
+            'can_start_battle' => $currentCount >= 3
         ]);
     }
 
     #[Route('/team/remove-character', name: 'api_matchmaking_team_remove_character', methods: ['POST'])]
     public function removeCharacterFromTeam(Request $request): JsonResponse
     {
-        $player = $this->getCurrentPlayer();
-        $data = json_decode($request->getContent(), true);
-        
-        $characterId = $data['character_id'] ?? null;
-        
-        if (!$characterId) {
-            return $this->json(['error' => 'Character ID requis'], 400);
+        try {
+            $player = $this->getCurrentPlayer();
+            $data = json_decode($request->getContent(), true);
+            
+            $characterId = $data['character_id'] ?? null;
+            
+            if (!$characterId) {
+                return $this->json(['error' => 'Character ID requis'], 400);
+            }
+
+            $instanceRepository = $this->entityManager->getRepository(\App\Entity\CharacterInstance::class);
+            $instance = $instanceRepository->createQueryBuilder('ci')
+                ->join('ci.team', 't')
+                ->join('ci.template', 'ct')
+                ->where('t.player = :player')
+                ->andWhere('ct.id = :characterId')
+                ->setParameter('player', $player)
+                ->setParameter('characterId', $characterId)
+                ->getQuery()
+                ->getOneOrNullResult();
+
+            if (!$instance) {
+                return $this->json(['error' => 'Personnage non trouvé dans votre équipe'], 404);
+            }
+
+            $characterName = $instance->getTemplate()->getName();
+            $this->entityManager->remove($instance);
+            $this->entityManager->flush();
+
+            // Recompter après la suppression
+            $team = $this->entityManager->getRepository(Team::class)->findOneBy(['player' => $player]);
+            $currentCount = $team ? count($team->getCharacterInstances()) : 0;
+
+            return $this->json([
+                'success' => true,
+                'message' => $characterName . ' retiré de votre équipe',
+                'team_character_count' => $currentCount,
+                'is_team_complete' => $currentCount >= 3,
+                'can_start_battle' => $currentCount >= 3
+            ]);
+        } catch (\Exception $e) {
+            return $this->json([
+                'error' => 'Erreur lors de la suppression: ' . $e->getMessage(),
+                'success' => false
+            ], 500);
         }
-
-        $instanceRepository = $this->entityManager->getRepository(\App\Entity\CharacterInstance::class);
-        $instance = $instanceRepository->createQueryBuilder('ci')
-            ->join('ci.team', 't')
-            ->join('ci.template', 'ct')
-            ->where('t.player = :player')
-            ->andWhere('ct.id = :characterId')
-            ->setParameter('player', $player)
-            ->setParameter('characterId', $characterId)
-            ->getQuery()
-            ->getOneOrNullResult();
-
-        if (!$instance) {
-            return $this->json(['error' => 'Personnage non trouvé dans votre équipe'], 404);
-        }
-
-        $characterName = $instance->getTemplate()->getName();
-        $this->entityManager->remove($instance);
-        $this->entityManager->flush();
-
-        return $this->json([
-            'success' => true
-        ]);
     }
 
     #[Route('/history', name: 'api_matchmaking_history', methods: ['GET'])]
@@ -354,7 +450,10 @@ class MatchmakingController extends AbstractController
 
         return $this->json([
             'success' => true,
-            'matches' => $historyData
+            'matches' => $historyData,
+            'total_matches' => count($historyData),
+            'wins' => count(array_filter($historyData, fn($match) => $match['is_winner'])),
+            'losses' => count(array_filter($historyData, fn($match) => !$match['is_winner']))
         ]);
     }
     #[Route('/ranking', name: 'api_matchmaking_ranking', methods: ['GET'])]
@@ -423,8 +522,12 @@ class MatchmakingController extends AbstractController
         }
 
         return $this->json([
+            'success' => true,
             'ranking' => $rankingData,
-            'current_player_position' => $currentPlayerPosition
+            'total_players' => count($rankingData),
+            'current_player_position' => $currentPlayerPosition,
+            'current_player_mmr' => $currentPlayer->getMMR() ?? 1200,
+            'filter' => $filter
         ]);
     }
 
@@ -530,17 +633,82 @@ class MatchmakingController extends AbstractController
             'team_a' => [
                 'name' => $match->getTeamA()->getName(),
                 'player' => $match->getTeamA()->getPlayer()->getUsername(),
-                'mmr' => $match->getTeamA()->getPlayer()->getMMR()
+                'mmr' => $match->getTeamA()->getPlayer()->getMMR(),
+                'power' => $match->getTeamAPower(),
+                'characters' => $this->getTeamCharacters($match->getTeamA())
             ],
             'team_b' => [
                 'name' => $match->getTeamB()->getName(),
                 'player' => $match->getTeamB()->getPlayer()->getUsername(),
-                'mmr' => $match->getTeamB()->getPlayer()->getMMR()
+                'mmr' => $match->getTeamB()->getPlayer()->getMMR(),
+                'power' => $match->getTeamBPower(),
+                'characters' => $this->getTeamCharacters($match->getTeamB())
             ],
             'winner_team' => $match->getWinnerTeam() ? $match->getWinnerTeam()->getName() : null,
+            'status' => $match->getStatus(),
+            'started_at' => $match->getStartedAt()?->format('d/m/Y H:i:s'),
+            'finished_at' => $match->getFinishedAt()?->format('d/m/Y H:i:s'),
             'events' => $eventsData
         ];
         
         return $this->json($matchData);
+    }
+
+    private function getTeamCharacters(Team $team): array
+    {
+        $characters = [];
+        foreach ($team->getCharacterInstances() as $instance) {
+            $template = $instance->getTemplate();
+            $characters[] = [
+                'id' => $template->getId(),
+                'name' => $template->getName(),
+                'role' => $template->getRole(),
+                'hp' => $template->getHp(),
+                'atk' => $template->getAtk(),
+                'def' => $template->getDef(),
+                'spd' => $template->getSpd(),
+                'heal' => $template->getHeal(),
+                'crit' => $template->getCrit(),
+                'critDmg' => $template->getCritDmg()
+            ];
+        }
+        return $characters;
+    }
+
+    #[Route('/admin/matchmaking/process', name: 'admin_matchmaking_process', methods: ['POST'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function processMatchmaking(MatchmakingScheduler $scheduler): JsonResponse
+    {
+        $scheduler->scheduleImmediateProcessing('admin_manual');
+        
+        return $this->json([
+            'success' => true,
+            'message' => 'Matchmaking processing scheduled'
+        ]);
+    }
+
+    #[Route('/admin/matchmaking/status', name: 'admin_matchmaking_status', methods: ['GET'])]
+    #[IsGranted('ROLE_ADMIN')]
+    public function getMatchmakingStatus(MatchmakingScheduler $scheduler): JsonResponse
+    {
+        return $this->json($scheduler->getStatus());
+    }
+
+    #[Route('/match/{matchId}/mark-viewed', name: 'matchmaking_mark_viewed', methods: ['POST'])]
+    public function markCombatViewed(int $matchId): JsonResponse
+    {
+        try {
+            $this->matchmakingService->markCombatAsViewed($matchId);
+            
+            return $this->json([
+                'success' => true,
+                'message' => 'Combat marqué comme visualisé'
+            ]);
+        } catch (\Exception $e) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Erreur lors du marquage du combat'
+            ], 500);
+        }
     }
 }

@@ -92,8 +92,25 @@ function cancelMatchmaking() {
 function resetSearchButton() {
     const searchBtn = document.getElementById('search-battle-btn');
     if (searchBtn) {
-        searchBtn.disabled = false;
+        // Ne plus forcer l'activation - laisser team-management.js gérer l'état
         searchBtn.innerHTML = '<i class="fas fa-search"></i> Rechercher un Match';
+        
+        // Si une instance de TeamManagement existe, laisser updateBattleTab() gérer l'état
+        if (window.teamManagement && typeof window.teamManagement.updateBattleTab === 'function') {
+            window.teamManagement.updateBattleTab();
+        } else {
+            // Sinon vérifier manuellement le nombre de personnages
+            const teamSize = document.querySelectorAll('.character-slot.occupied').length;
+            if (teamSize < 3) {
+                searchBtn.disabled = true;
+                searchBtn.classList.add('disabled');
+                searchBtn.setAttribute('disabled', 'disabled');
+            } else {
+                searchBtn.disabled = false;
+                searchBtn.classList.remove('disabled');
+                searchBtn.removeAttribute('disabled');
+            }
+        }
     }
 }
 
