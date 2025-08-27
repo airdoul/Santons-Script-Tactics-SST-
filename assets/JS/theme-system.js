@@ -121,7 +121,7 @@ class ThemeSystem {
             // Sauvegarder le choix
             localStorage.setItem('sst-theme', themeName);
             
-            console.log(`🎨 Thème changé pour: ${this.themes[themeName].name}`);
+            // Thème changé silencieusement
         }
     }
 
@@ -185,7 +185,7 @@ class ThemeSystem {
             }
         }
 
-        console.log(`🖼️ Background changé: ${randomBg}`);
+
     }
 
     setRandomVideo() {
@@ -204,7 +204,7 @@ class ThemeSystem {
             });
         }
 
-        console.log(`🎬 Vidéo de background changée: ${randomVideo}`);
+
     }
 
     updateActiveButton() {
@@ -227,7 +227,7 @@ class ThemeSystem {
 document.addEventListener('DOMContentLoaded', function() {
     try {
         window.themeSystem = new ThemeSystem();
-        console.log('🎨 Système de thèmes initialisé');
+
     } catch (error) {
         console.warn('Erreur lors de l\'initialisation du système de thèmes:', error);
     }

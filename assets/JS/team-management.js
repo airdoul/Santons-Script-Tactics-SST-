@@ -10,7 +10,7 @@ class TeamManagement {
     }
 
     async init() {
-        console.log('🎮 Interface de gestion d\'équipe initialisée');
+
         this.setupTabs();
         await this.loadPlayerTeam();
         await this.loadCharacters();
@@ -41,7 +41,7 @@ class TeamManagement {
         if (activePanel) activePanel.classList.add('active');
         
         this.currentTab = tabName;
-        console.log(`📋 Onglet activé: ${tabName}`);
+
         
         // Actions spécifiques par onglet
         if (tabName === 'characters') {
@@ -80,7 +80,7 @@ class TeamManagement {
             if (data.success) {
                 this.playerTeam = data.team;
                 this.showNotification('Équipe créée automatiquement !', 'success');
-                console.log('✅ Équipe créée:', data.team.name);
+
             }
         } catch (error) {
             console.error('Erreur lors de la création d\'équipe:', error);
@@ -140,7 +140,7 @@ class TeamManagement {
         try {
             const response = await fetch('/api/matchmaking/characters');
             this.availableCharacters = await response.json();
-            console.log('📝 Personnages chargés:', this.availableCharacters.length);
+
         } catch (error) {
             console.error('Erreur lors du chargement des personnages:', error);
         }
@@ -303,6 +303,6 @@ class TeamManagement {
 document.addEventListener('DOMContentLoaded', function() {
     if (document.querySelector('.game-interface')) {
         window.teamManagement = new TeamManagement();
-        console.log(' Système de gestion d\'équipe initialisé');
+
     }
 });

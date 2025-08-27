@@ -27,7 +27,6 @@ class MatchmakingScheduler
         // Éviter les doublons - vérifier si déjà programmé
         $scheduledItem = $this->cache->getItem(self::SCHEDULE_CACHE_KEY);
         if ($scheduledItem->isHit()) {
-            $this->logger->debug('Matchmaking already scheduled, skipping', ['reason' => $reason]);
             return;
         }
 
@@ -40,21 +39,13 @@ class MatchmakingScheduler
             new ProcessMatchmakingMessage(time(), $reason),
             [new DelayStamp(5000)] // 5 secondes de délai
         );
-
-        $this->logger->info('Matchmaking processing scheduled', [
-            'reason' => $reason,
-            'delay' => '5 seconds'
-        ]);
     }
 
     public function scheduleImmediateProcessing(string $reason = 'immediate'): void
     {
-        // Pour un traitement immédiat (sans délai)
         $this->messageBus->dispatch(
             new ProcessMatchmakingMessage(time(), $reason)
         );
-
-        $this->logger->info('Immediate matchmaking processing scheduled', ['reason' => $reason]);
     }
 
     public function processNow(): array
@@ -88,8 +79,6 @@ class MatchmakingScheduler
             if (($result['players_waiting'] ?? 0) > 0) {
                 $this->scheduleProcessing('players_still_waiting');
             }
-
-            $this->logger->info('Matchmaking processing completed', $result);
 
             return $result;
 

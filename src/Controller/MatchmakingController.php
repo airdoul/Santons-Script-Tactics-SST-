@@ -5,10 +5,8 @@ namespace App\Controller;
 use App\Entity\Team;
 use App\Entity\Player;
 use App\Entity\SSTMatch;
-use App\Entity\MatchEvent;
 use App\Entity\QueueTicket;
 use App\Entity\CharacterInstance;
-use App\Entity\CharacterTemplate;
 use App\Repository\TeamRepository;
 use App\Service\MatchmakingService;
 use App\Service\MatchmakingScheduler;
@@ -67,12 +65,7 @@ class MatchmakingController extends AbstractController
             return $this->json([
                 'success' => true,
                 'message' => 'Ajouté à la file d\'attente',
-                'ticket_id' => $ticket->getId(),
-                'debug' => [
-                    'queue_size_after' => count($this->entityManager->getRepository(QueueTicket::class)->findBy(['status' => 'SEARCHING'])),
-                    'team_name' => $team->getName(),
-                    'mmr' => $ticket->getMmr()
-                ]
+                'ticket_id' => $ticket->getId()
             ]);
         } catch (\Exception $e) {
             return $this->json(['error' => $e->getMessage()], 400);
@@ -86,16 +79,8 @@ class MatchmakingController extends AbstractController
         $success = $this->matchmakingService->cancelQueue($currentPlayer);
         
         if ($success) {
-            // Même si un joueur quitte, on peut vouloir retraiter pour optimiser les matches
             $scheduler->scheduleProcessing('player_left');
-            
-            return $this->json([
-                'success' => true, 
-                'message' => 'Recherche annulée',
-                'debug' => [
-                    'queue_size_after' => count($this->entityManager->getRepository(QueueTicket::class)->findBy(['status' => 'SEARCHING']))
-                ]
-            ]);
+            return $this->json(['success' => true, 'message' => 'Recherche annulée']);
         }
         
         return $this->json(['error' => 'Aucune recherche en cours'], 400);
@@ -117,72 +102,12 @@ class MatchmakingController extends AbstractController
     #[Route('/process', name: 'matchmaking_process', methods: ['POST'])]
     public function processQueue(MatchmakingScheduler $scheduler): JsonResponse
     {
-        // Cette route peut être appelée manuellement ou par cron
         $scheduler->scheduleImmediateProcessing('manual_trigger');
         
-        return $this->json([
-            'success' => true,
-            'message' => 'Traitement du matchmaking déclenché'
-        ]);
+        return $this->json(['success' => true]);
     }
 
-    #[Route('/debug', name: 'matchmaking_debug', methods: ['GET'])]
-    public function getDebugInfo(): JsonResponse
-    {
-        try {
-            $currentPlayer = $this->getCurrentPlayer();
-            
-            // récupère les ticket en attente
-            $queueTickets = $this->entityManager->getRepository(QueueTicket::class)
-                ->findBy(['status' => 'SEARCHING'], ['createdAt' => 'ASC']);
-            
-            // récupère les match récent
-            $recentMatches = $this->entityManager->getRepository(SSTMatch::class)
-                ->findBy([], ['id' => 'DESC'], 5);
 
-            $debugData = [
-                'timestamp' => (new \DateTime())->format('H:i:s'),
-                'queue_count' => count($queueTickets),
-                'queue_tickets' => array_map(function($ticket) {
-                    $waitingTime = (new \DateTime())->getTimestamp() - $ticket->getCreatedAt()->getTimestamp();
-                    return [
-                        'id' => $ticket->getId(),
-                        'player' => $ticket->getPlayer()->getUsername(),
-                        'team' => $ticket->getTeam()->getName(),
-                        'status' => $ticket->getStatus(),
-                        'mmr' => $ticket->getMmr(),
-                        'waiting_time' => $waitingTime . 's',
-                        'created_at' => $ticket->getCreatedAt()->format('H:i:s')
-                    ];
-                }, $queueTickets),
-                'recent_matches' => array_map(function($match) {
-                    return [
-                        'id' => $match->getId(),
-                        'team_a' => $match->getTeamA()->getName(),
-                        'team_b' => $match->getTeamB()->getName(),
-                        'status' => $match->getStatus(),
-                        'rng_seed' => $match->getRngSeed()
-                    ];
-                }, $recentMatches),
-                'system_info' => [
-                    'current_user' => $currentPlayer->getUsername(),
-                    'current_user_id' => $currentPlayer->getId(),
-                    'current_user_email' => $currentPlayer->getEmail(),
-                    'total_players' => count($this->entityManager->getRepository(Player::class)->findAll()),
-                    'total_matches' => count($this->entityManager->getRepository(SSTMatch::class)->findAll())
-                ]
-            ];
-
-            return $this->json($debugData);
-            
-        } catch (\Exception $e) {
-            return $this->json([
-                'error' => 'Erreur lors de la récupération des données de debug',
-                'message' => $e->getMessage(),
-                'timestamp' => (new \DateTime())->format('H:i:s')
-            ], 500);
-        }
-    }
 
     #[Route('/results', name: 'matchmaking_results', methods: ['GET'])]
     public function getResults(): JsonResponse
@@ -197,17 +122,11 @@ class MatchmakingController extends AbstractController
                 'team_a' => $match->getTeamA()->getName(),
                 'team_b' => $match->getTeamB()->getName(),
                 'winner' => $match->getWinnerTeam() ? $match->getWinnerTeam()->getName() : 'Aucun',
-                'team_a_power' => $match->getTeamAPower(),
-                'team_b_power' => $match->getTeamBPower(),
-                'team_a_chance' => round($match->getTeamAPercent() * 100, 1) . '%',
-                'team_b_chance' => round((1 - $match->getTeamAPercent()) * 100, 1) . '%',
-                'status' => $match->getStatus(),
                 'finished_at' => $match->getFinishedAt() ? $match->getFinishedAt()->format('H:i:s') : null
             ];
         }
         
         return $this->json([
-            'total_matches' => count($results),
             'matches' => $results
         ]);
     }
@@ -351,8 +270,7 @@ class MatchmakingController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json([
-            'success' => true,
-            'message' => $character->getName() . ' ajouté à votre équipe'
+            'success' => true
         ]);
     }
 
@@ -388,8 +306,7 @@ class MatchmakingController extends AbstractController
         $this->entityManager->flush();
 
         return $this->json([
-            'success' => true,
-            'message' => $characterName . ' retiré de votre équipe'
+            'success' => true
         ]);
     }
 
@@ -437,10 +354,7 @@ class MatchmakingController extends AbstractController
 
         return $this->json([
             'success' => true,
-            'matches' => $historyData,
-            'total_matches' => count($historyData),
-            'wins' => count(array_filter($historyData, fn($match) => $match['is_winner'])),
-            'losses' => count(array_filter($historyData, fn($match) => !$match['is_winner']))
+            'matches' => $historyData
         ]);
     }
     #[Route('/ranking', name: 'api_matchmaking_ranking', methods: ['GET'])]
@@ -509,12 +423,8 @@ class MatchmakingController extends AbstractController
         }
 
         return $this->json([
-            'success' => true,
             'ranking' => $rankingData,
-            'total_players' => count($rankingData),
-            'current_player_position' => $currentPlayerPosition,
-            'current_player_mmr' => $currentPlayer->getMMR() ?? 1200,
-            'filter' => $filter
+            'current_player_position' => $currentPlayerPosition
         ]);
     }
 
@@ -570,20 +480,7 @@ class MatchmakingController extends AbstractController
 
     private function calculateRecentMmrChange(array $recentMatches, Player $player): int
     {
-        $change = 0;
-        
-        foreach (array_slice($recentMatches, 0, 3) as $match) {
-            $isPlayerTeamA = $match->getTeamA()->getPlayer() === $player;
-            $playerTeam = $isPlayerTeamA ? $match->getTeamA() : $match->getTeamB();
-            
-            if ($match->getWinnerTeam() === $playerTeam) {
-                $change += mt_rand(15, 35);
-            } else {
-                $change -= mt_rand(10, 30);
-            }
-        }
-        
-        return $change;
+        return 0; // Simplification : pas de calcul complexe
     }
     #[Route('/match/{id}/events', name: 'match_events', methods: ['GET'])]
     public function getMatchEvents(int $id): JsonResponse
@@ -630,42 +527,14 @@ class MatchmakingController extends AbstractController
         // info du match
         $matchData = [
             'id' => $match->getId(),
-            'team_a' => [
-                'name' => $match->getTeamA()->getName(),
-                'player' => $match->getTeamA()->getPlayer()->getUsername(),
-                'mmr' => $match->getTeamA()->getPlayer()->getMMR()
-            ],
-            'team_b' => [
-                'name' => $match->getTeamB()->getName(),
-                'player' => $match->getTeamB()->getPlayer()->getUsername(),
-                'mmr' => $match->getTeamB()->getPlayer()->getMMR()
-            ],
+            'team_a' => $match->getTeamA()->getName(),
+            'team_b' => $match->getTeamB()->getName(),
             'winner_team' => $match->getWinnerTeam() ? $match->getWinnerTeam()->getName() : null,
-            'status' => $match->getStatus(),
-            'started_at' => $match->getStartedAt()?->format('d/m/Y H:i:s'),
-            'finished_at' => $match->getFinishedAt()?->format('d/m/Y H:i:s'),
             'events' => $eventsData
         ];
         
         return $this->json($matchData);
     }
 
-    #[Route('/admin/matchmaking/process', name: 'admin_matchmaking_process', methods: ['POST'])]
-    #[IsGranted('ROLE_ADMIN')]
-    public function processMatchmaking(MatchmakingScheduler $scheduler): JsonResponse
-    {
-        $scheduler->scheduleImmediateProcessing('admin_manual');
-        
-        return $this->json([
-            'success' => true,
-            'message' => 'Matchmaking processing scheduled'
-        ]);
-    }
 
-    #[Route('/admin/matchmaking/status', name: 'admin_matchmaking_status', methods: ['GET'])]
-    #[IsGranted('ROLE_ADMIN')]
-    public function getMatchmakingStatus(MatchmakingScheduler $scheduler): JsonResponse
-    {
-        return $this->json($scheduler->getStatus());
-    }
 }

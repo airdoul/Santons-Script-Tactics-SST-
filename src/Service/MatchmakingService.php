@@ -26,22 +26,11 @@ class MatchmakingService
 
     public function joinQueue(Player $player, Team $team): QueueTicket
     {
-        $this->logger->info(' [MATCHMAKING] Joueur rejoint la queue', [
-            'player_id' => $player->getId(),
-            'player_username' => $player->getUsername(),
-            'team_name' => $team->getName(),
-            'timestamp' => (new \DateTime())->format('H:i:s')
-        ]);
-
         // vérifie si le joueur est déjà en recherche
         $existingTicket = $this->entityManager->getRepository(QueueTicket::class)
             ->findOneBy(['player' => $player, 'status' => 'SEARCHING']);
 
         if ($existingTicket) {
-            $this->logger->warning(' [MATCHMAKING] Tentative de double inscription', [
-                'player_username' => $player->getUsername(),
-                'existing_ticket_id' => $existingTicket->getId()
-            ]);
             throw new \Exception('Vous êtes déjà en file d\'attente');
         }
 
@@ -56,40 +45,20 @@ class MatchmakingService
         $this->entityManager->persist($ticket);
         $this->entityManager->flush();
 
-        $this->logger->info(' [MATCHMAKING] Ticket créé avec succès', [
-            'ticket_id' => $ticket->getId(),
-            'mmr' => $ticket->getMmr(),
-            'player_username' => $player->getUsername()
-        ]);
-
         return $ticket;
     }
 
     public function cancelQueue(Player $player): bool
     {
-        $this->logger->info(' [MATCHMAKING] Tentative d\'annulation', [
-            'player_id' => $player->getId(),
-            'player_username' => $player->getUsername(),
-            'timestamp' => (new \DateTime())->format('H:i:s')
-        ]);
-
         $ticket = $this->entityManager->getRepository(QueueTicket::class)
             ->findOneBy(['player' => $player, 'status' => 'SEARCHING']);
 
         if (!$ticket) {
-            $this->logger->warning(' [MATCHMAKING] Aucune queue active à annuler', [
-                'player_username' => $player->getUsername()
-            ]);
             return false;
         }
 
         $ticket->setStatus('CANCELLED');
         $this->entityManager->flush();
-
-        $this->logger->info(' [MATCHMAKING] Queue annulée avec succès', [
-            'ticket_id' => $ticket->getId(),
-            'player_username' => $player->getUsername()
-        ]);
 
         return true;
     }
@@ -106,12 +75,6 @@ class MatchmakingService
 
         $waitingTime = (new \DateTime())->getTimestamp() - $ticket->getCreatedAt()->getTimestamp();
         
-        $this->logger->debug(' [MATCHMAKING] Status demandé', [
-            'player_username' => $player->getUsername(),
-            'waiting_time' => $waitingTime,
-            'mmr' => $ticket->getMmr()
-        ]);
-
         return [
             'status' => 'SEARCHING',
             'mmr' => $ticket->getMmr(),
@@ -130,42 +93,19 @@ class MatchmakingService
 
     public function processQueue(): array
     {
-        $startTime = microtime(true); // AJOUTER CETTE LIGNE
+        $startTime = microtime(true);
         
         $tickets = $this->entityManager->getRepository(QueueTicket::class)
             ->findBy(['status' => 'SEARCHING'], ['createdAt' => 'ASC']);
 
-        $this->logger->info(' [MATCHMAKING] Début du traitement de la queue', [
-            'tickets_count' => count($tickets),
-            'timestamp' => (new \DateTime())->format('H:i:s')
-        ]);
-
-        if (count($tickets) === 0) {
-            $this->logger->info(' [MATCHMAKING] Aucun ticket en attente');
+        if (count($tickets) < 2) {
             return [
                 'matches_created' => 0,
-                'players_waiting' => 0,
+                'players_waiting' => count($tickets),
                 'processing_time' => microtime(true) - $startTime,
                 'timestamp' => time()
             ];
         }
-
-        if (count($tickets) === 1) {
-            $this->logger->info(' [MATCHMAKING] Un seul joueur en attente', [
-                'player' => $tickets[0]->getPlayer()->getUsername(),
-                'waiting_since' => $tickets[0]->getCreatedAt()->format('H:i:s')
-            ]);
-            return [
-                'matches_created' => 0,
-                'players_waiting' => 1,
-                'processing_time' => microtime(true) - $startTime,
-                'timestamp' => time()
-            ];
-        }
-
-        $this->logger->info(' [MATCHMAKING] Recherche de matchs compatibles...', [
-            'candidates' => count($tickets)
-        ]);
 
         $matches = [];
         $processedTickets = [];
@@ -187,12 +127,6 @@ class MatchmakingService
                 $mmrDiff = abs($ticket1->getMmr() - $ticket2->getMmr());
 
                 if ($mmrDiff <= 200) {
-                    $this->logger->info(' [MATCHMAKING] Match compatible trouvé !', [
-                        'player1' => $ticket1->getPlayer()->getUsername(),
-                        'player2' => $ticket2->getPlayer()->getUsername(),
-                        'mmr_diff' => $mmrDiff
-                    ]);
-
                     $match = $this->createMatch($ticket1, $ticket2);
                     $matches[] = $match;
                     
@@ -200,28 +134,12 @@ class MatchmakingService
                     $processedTickets[] = $ticket2->getId();
                     
                     break;
-                } else {
-                    $this->logger->debug(' [MATCHMAKING] MMR incompatible', [
-                        'required_max' => 200,
-                        'actual_diff' => $mmrDiff,
-                        'player1' => $ticket1->getPlayer()->getUsername(),
-                        'player2' => $ticket2->getPlayer()->getUsername()
-                    ]);
                 }
             }
         }
 
-        $matchesCreated = count($matches); // AJOUTER CETTE LIGNE
-
-        $this->logger->info(' [MATCHMAKING] Traitement terminé', [
-            'matches_created' => $matchesCreated,
-            'tickets_processed' => count($processedTickets),
-            'tickets_remaining' => count($tickets) - count($processedTickets),
-            'timestamp' => (new \DateTime())->format('H:i:s')
-        ]);
-
         return [
-            'matches_created' => $matchesCreated,
+            'matches_created' => count($matches),
             'players_waiting' => $this->getQueueSize(),
             'processing_time' => microtime(true) - $startTime,
             'timestamp' => time()
@@ -231,14 +149,6 @@ class MatchmakingService
     {
         $rngSeed = rand(1000, 9999);
         
-        $this->logger->info('🎮 [MATCHMAKING] Création d\'un nouveau match', [
-            'team_a' => $ticket1->getTeam()->getName(),
-            'team_b' => $ticket2->getTeam()->getName(),
-            'rng_seed' => $rngSeed,
-            'player_a' => $ticket1->getPlayer()->getUsername(),
-            'player_b' => $ticket2->getPlayer()->getUsername()
-        ]);
-
         $match = new SSTMatch();
         $match->setTeamA($ticket1->getTeam());
         $match->setTeamB($ticket2->getTeam());
@@ -253,22 +163,11 @@ class MatchmakingService
 
         $this->entityManager->flush();
 
-        $this->logger->info('✅ [MATCHMAKING] Match créé avec succès', [
-            'match_id' => $match->getId(),
-            'rng_seed' => $match->getRngSeed(),
-            'status' => $match->getStatus()
-        ]);
-
-        // 🔥 NOUVEAU : Lancer automatiquement le combat
-        $this->logger->info('⚔️ [MATCHMAKING] Lancement automatique du combat');
+        // Lancer automatiquement le combat (les logs MMR sont dans CombatService)
         try {
             $this->combatService->simulateCombat($match);
-            $this->logger->info('🏆 [MATCHMAKING] Combat terminé avec succès');
         } catch (\Exception $e) {
-            $this->logger->error('❌ [MATCHMAKING] Erreur pendant le combat', [
-                'error' => $e->getMessage(),
-                'match_id' => $match->getId()
-            ]);
+            // Erreur silencieuse, le combat peut être relancé plus tard
         }
 
         return $match;

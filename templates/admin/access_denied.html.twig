@@ -89,7 +89,6 @@ document.addEventListener('DOMContentLoaded', function() {
         "🎮 Level: Expert Troll", "🚫 Permission denied!", "🎭 C'est du théâtre !",
         "🏆 Champion de l'esquive !",
         
-        // Messages de troll supplémentaires
         "🐰 Aussi rapide qu'un lapin !", "🌪️ Je suis un tornado !",
         "🎨 L'art de l'esquive !", "🚀 Plus rapide que la lumière !",
         "🕷️ Spider-Button à votre service !", "🎯 Raté ! Essayez encore !",
@@ -168,9 +167,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         showMessage();
 
-        // Après 10 tentatives, 5% de chance de laisser cliquer
+        // Après 10 tentatives 5% de chance de laisser cliquer
         if (attempts >= 10 && Math.random() < 0.05) {
-            homeBtn.innerHTML = '<i class="fas fa-heart"></i> OK, vous pouvez partir 😊';
+            homeBtn.innerHTML = '<i class="fas fa-heart"></i> OK, vous pouvez partir ';
             homeBtn.classList.add('btn-success');
             homeBtn.classList.remove('btn-primary');
             const msg = document.createElement('div');
