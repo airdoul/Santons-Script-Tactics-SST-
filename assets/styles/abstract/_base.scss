@@ -1,23 +1,5 @@
-@use 'abstract/variables' as *;
-@use 'abstract/base';
+@use '../abstract/variables' as *;
 
-@use 'components/navbar';
-@use 'components/game-interface';
-@use 'components/combat-visualization';
-@use 'components/combat-pending-notification';
-@use 'components/guild-guide';
-@use 'components/theme-system';
-@use 'components/ranking';
-@use 'components/auth-forms';
-
-@use 'sass:color';
-
-@use 'pages/homepage';
-@use 'pages/access-denied';
-
-
-
-//  STYLES GLOBAUX A INTEGRER DANS LE SCSS ET SORTIR DE APP.SCSS
 * {
   margin: 0;
   padding: 0;
@@ -65,41 +47,4 @@ body {
 
 main {
   min-height: calc(100vh - 120px);
-}
-
-//  UTILITAIRES 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 25px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-  
-  &.btn-primary {
-    background: $primary-color;
-    color: $white;
-    
-    &:hover {
-      background: color.adjust($primary-color, $lightness: -10%);
-    }
-  }
-  
-  &.btn-secondary {
-    background: $secondary-color;
-    color: $white;
-    
-    &:hover {
-      background: color.adjust($secondary-color, $lightness: -10%);
-    }
-  }
 }

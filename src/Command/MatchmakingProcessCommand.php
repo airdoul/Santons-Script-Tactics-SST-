@@ -34,41 +34,29 @@ class MatchmakingProcessCommand extends Command
         try {
             $io->writeln(' Recherche de joueurs en file d\'attente...');
             
-            $matches = $this->matchmakingService->processQueue();
+            $result = $this->matchmakingService->processQueue();
 
             $endTimestamp = (new \DateTime())->format('H:i:s');
 
-            if (count($matches) > 0) {
-                $io->success(sprintf('[%s]  %d nouveaux matchs créés !', $endTimestamp, count($matches)));
+            if ($result['matches_created'] > 0) {
+                $io->success(sprintf('[%s]  %d nouveaux matchs créés !', $endTimestamp, $result['matches_created']));
                 
-                // show details
-                $tableData = [];
-                foreach ($matches as $match) {
-                    $tableData[] = [
-                        $match->getId(),
-                        $match->getTeamA()->getName(),
-                        $match->getTeamB()->getName(),
-                        $match->getRngSeed(),
-                        $match->getStatus()
-                    ];
-                    
-                    $io->writeln(sprintf(
-                        '  Match #%d créé: %s vs %s (Seed: %d)',
-                        $match->getId(),
-                        $match->getTeamA()->getName(),
-                        $match->getTeamB()->getName(),
-                        $match->getRngSeed()
-                    ));
-                }
-                
-                // tableau recap
-                $io->table(
-                    ['ID', 'Équipe A', 'Équipe B', 'Seed', 'Status'],
-                    $tableData
-                );
+                $io->writeln(sprintf(
+                    '  Temps de traitement: %.3fs | Joueurs en attente: %d',
+                    $result['processing_time'],
+                    $result['players_waiting']
+                ));
                 
             } else {
-                $io->note(sprintf('[%s]   Aucun match créé cette fois', $endTimestamp));
+                if ($result['players_waiting'] > 0) {
+                    $io->note(sprintf('[%s]   %d joueur(s) en attente, pas assez pour créer un match', 
+                        $endTimestamp, 
+                        $result['players_waiting']
+                    ));
+                } else {
+                    $io->note(sprintf('[%s]   Aucun joueur en queue', $endTimestamp));
+                }
+                
                 $io->writeln(' Raisons possibles:');
                 $io->listing([
                     'Pas assez de joueurs en queue (minimum 2 requis)',

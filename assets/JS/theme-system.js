@@ -33,7 +33,7 @@ class ThemeSystem {
                     'images/backgroundDysto/bgDysto1.mov'
                 ],
                 colors: {
-                    primary: '#ff6b35',
+                    primary: '#8e26f0ff',
                     secondary: '#7209b7',
                     accent: '#c71585'
                 }
