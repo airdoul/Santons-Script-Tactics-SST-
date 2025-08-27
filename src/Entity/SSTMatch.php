@@ -50,6 +50,9 @@ class SSTMatch
     #[ORM\Column(nullable: true)]
     private ?bool $randomDraw = null;
 
+    #[ORM\Column(type: 'boolean', options: ['default' => false])]
+    private bool $combatViewed = false;
+
     /**
      * @var Collection<int, MatchEvent>
      */
@@ -224,6 +227,18 @@ class SSTMatch
                 $matchEvent->setSstmatch(null);
             }
         }
+
+        return $this;
+    }
+
+    public function isCombatViewed(): bool
+    {
+        return $this->combatViewed;
+    }
+
+    public function setCombatViewed(bool $combatViewed): static
+    {
+        $this->combatViewed = $combatViewed;
 
         return $this;
     }

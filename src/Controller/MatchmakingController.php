@@ -633,12 +633,16 @@ class MatchmakingController extends AbstractController
             'team_a' => [
                 'name' => $match->getTeamA()->getName(),
                 'player' => $match->getTeamA()->getPlayer()->getUsername(),
-                'mmr' => $match->getTeamA()->getPlayer()->getMMR()
+                'mmr' => $match->getTeamA()->getPlayer()->getMMR(),
+                'power' => $match->getTeamAPower(),
+                'characters' => $this->getTeamCharacters($match->getTeamA())
             ],
             'team_b' => [
                 'name' => $match->getTeamB()->getName(),
                 'player' => $match->getTeamB()->getPlayer()->getUsername(),
-                'mmr' => $match->getTeamB()->getPlayer()->getMMR()
+                'mmr' => $match->getTeamB()->getPlayer()->getMMR(),
+                'power' => $match->getTeamBPower(),
+                'characters' => $this->getTeamCharacters($match->getTeamB())
             ],
             'winner_team' => $match->getWinnerTeam() ? $match->getWinnerTeam()->getName() : null,
             'status' => $match->getStatus(),
@@ -648,6 +652,28 @@ class MatchmakingController extends AbstractController
         ];
         
         return $this->json($matchData);
+    }
+
+    private function getTeamCharacters(Team $team): array
+    {
+        $characters = [];
+        foreach ($team->getCharacterInstances() as $instance) {
+            $template = $instance->getTemplate();
+            $characters[] = [
+                'id' => $template->getId(),
+                'name' => $template->getName(),
+                'role' => $template->getRole(),
+                'hp' => $template->getBaseHP(),
+                'atk' => $template->getBaseAtk(),
+                'def' => $template->getBaseDef(),
+                'spd' => $template->getBaseSpd(),
+                'heal' => $template->getBaseHeal(),
+                'crit' => $template->getBaseCrit(),
+                'critDmg' => $template->getBaseCritDmg(),
+                'artworkUrl' => $template->getArtworkUrl()
+            ];
+        }
+        return $characters;
     }
 
     #[Route('/admin/matchmaking/process', name: 'admin_matchmaking_process', methods: ['POST'])]
@@ -667,5 +693,23 @@ class MatchmakingController extends AbstractController
     public function getMatchmakingStatus(MatchmakingScheduler $scheduler): JsonResponse
     {
         return $this->json($scheduler->getStatus());
+    }
+
+    #[Route('/match/{matchId}/mark-viewed', name: 'matchmaking_mark_viewed', methods: ['POST'])]
+    public function markCombatViewed(int $matchId): JsonResponse
+    {
+        try {
+            $this->matchmakingService->markCombatAsViewed($matchId);
+            
+            return $this->json([
+                'success' => true,
+                'message' => 'Combat marqué comme visualisé'
+            ]);
+        } catch (\Exception $e) {
+            return $this->json([
+                'success' => false,
+                'message' => 'Erreur lors du marquage du combat'
+            ], 500);
+        }
     }
 }
