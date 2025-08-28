@@ -56,6 +56,15 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column]
     private ?int $MMR = null;
 
+    #[ORM\Column(length: 7, nullable: true)]
+    private ?string $usernameColor = '#8b3a3a'; // Couleur par défaut du thème
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $preferredIcon = 'user'; // Icône par défaut
+
+    #[ORM\Column(options: ['default' => true])]
+    private bool $notificationsEnabled = true;
+
     public function __construct()
     {
         $this->teams = new ArrayCollection();
@@ -234,6 +243,39 @@ class Player implements UserInterface, PasswordAuthenticatedUserInterface
     {
         $this->MMR = $MMR;
 
+        return $this;
+    }
+
+    public function getUsernameColor(): ?string
+    {
+        return $this->usernameColor;
+    }
+
+    public function setUsernameColor(?string $usernameColor): static
+    {
+        $this->usernameColor = $usernameColor;
+        return $this;
+    }
+
+    public function getPreferredIcon(): ?string
+    {
+        return $this->preferredIcon;
+    }
+
+    public function setPreferredIcon(?string $preferredIcon): static
+    {
+        $this->preferredIcon = $preferredIcon;
+        return $this;
+    }
+
+    public function isNotificationsEnabled(): bool
+    {
+        return $this->notificationsEnabled;
+    }
+
+    public function setNotificationsEnabled(bool $notificationsEnabled): static
+    {
+        $this->notificationsEnabled = $notificationsEnabled;
         return $this;
     }
 }

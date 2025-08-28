@@ -16,7 +16,9 @@
             <script>
                 window.userInfo = {
                     isLoggedIn: {{ app.user ? 'true' : 'false' }},
-                    username: '{{ app.user ? app.user.username : '' }}'
+                    username: '{{ app.user ? app.user.username : '' }}',
+                    usernameColor: '{{ app.user ? (app.user.usernameColor ?? '#8b3a3a') : '#8b3a3a' }}',
+                    preferredIcon: '{{ app.user ? (app.user.preferredIcon ?? 'user') : 'user' }}'
                 };
             </script>
         {% endblock %}
@@ -55,7 +57,7 @@
                         {% endif %}
                             {% if app.user %}
                                 <li><a href="{{ path('app_homepage') }}#ranking" class="dropdown-item"><i class="fas fa-trophy"></i> Classements</a></li>
-                                <li><a href="#" class="dropdown-item"><i class="fas fa-user-circle"></i> Profil</a></li>
+                                <li><a href="{{ path('app_profile') }}" class="dropdown-item"><i class="fas fa-user-circle"></i> Profil</a></li>
                                 <li><a href="{{ path('app_logout') }}" class="dropdown-item logout-link"><i class="fas fa-sign-out-alt"></i> Déconnexion</a></li>
                             {% else %}
                                 <li><a href="{{ path('app_homepage') }}#ranking" class="dropdown-item"><i class="fas fa-trophy"></i> Classements</a></li>
@@ -86,7 +88,7 @@
                         {% endif %}
                         <a href="{{ path('app_homepage') }}#history" class="mobile-nav-link"><i class="fas fa-history"></i> Historique</a>
                         <a href="{{ path('app_homepage') }}#ranking" class="mobile-nav-link"><i class="fas fa-trophy"></i> Classements</a>
-                        <a href="#" class="mobile-nav-link"><i class="fas fa-user-circle"></i> Profil</a>
+                        <a href="{{ path('app_profile') }}" class="mobile-nav-link"><i class="fas fa-user-circle"></i> Profil</a>
                         
                         <a href="{{ path('app_logout') }}" class="mobile-nav-link logout-link"><i class="fas fa-sign-out-alt"></i> Se Déconnecter</a>
                     {% else %}

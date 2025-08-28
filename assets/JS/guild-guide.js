@@ -159,7 +159,7 @@ class GuildGuide {
                 `;
             } else {
                 textEl.innerHTML = `
-                    <p>Bonjour <strong>${this.userName}</strong>, quelle est votre demande ?</p>
+                    <p>Bonjour <strong style="color: ${window.userInfo.usernameColor || '#8b3a3a'}">${this.userName}</strong>, quelle est votre demande ?</p>
                 `;
                 
                 buttonsEl.innerHTML = `

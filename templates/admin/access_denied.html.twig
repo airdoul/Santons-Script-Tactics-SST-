@@ -55,7 +55,7 @@
                         {% if app.user %}
                         <div class="mt-4 p-3 bg-light rounded">
                             <small class="text-muted">
-                                <i class="fas fa-user"></i> Connecté en tant que : <strong>{{ app.user.username }}</strong>
+                                <i class="fas fa-user"></i> Connecté en tant que : <strong style="color: {{ app.user.usernameColor ?? '#8b3a3a' }}">{{ app.user.username }}</strong>
                             </small>
                         </div>
                         {% endif %}

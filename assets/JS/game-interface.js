@@ -319,7 +319,7 @@ class GameInterface {
                     <div class="ranking-entry ${topClass} ${player.is_current_player ? 'current-player' : ''}">
                         <span class="rank ${rankClass}"><i class="fas fa-${rankIcon}"></i> ${player.position}</span>
                         <div class="player-info">
-                            <span class="player-name">${player.username}</span>
+                            <span class="player-name" style="color: ${player.username === window.userInfo.username ? window.userInfo.usernameColor : 'inherit'}">${player.username}</span>
                             <div class="player-stats">
                                 <span class="rating"><i class="fas fa-star"></i> ${player.mmr}</span>
                                 <span class="wins"><i class="fas fa-trophy"></i> ${player.wins}V</span>
@@ -343,7 +343,7 @@ class GameInterface {
                     <div class="ranking-entry ${player.is_current_player ? 'current-player' : ''}">
                         <span class="rank">#${player.position}</span>
                         <div class="player-info">
-                            <span class="player-name">${player.username}</span>
+                            <span class="player-name" style="color: ${player.is_current_player ? window.userInfo.usernameColor : 'inherit'}">${player.username}</span>
                             <div class="player-stats">
                                 <span class="rating"><i class="fas fa-star"></i> ${player.mmr}</span>
                                 <span class="wins"><i class="fas fa-trophy"></i> ${player.wins}V</span>
