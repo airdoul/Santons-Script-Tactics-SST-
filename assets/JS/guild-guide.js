@@ -14,6 +14,7 @@ class GuildGuide {
             this.checkUserStatus();
             this.createGuideInterface();
             this.startImageRotation();
+            this.setupAutoDialogue(); // Fonctionnalité ajoutée - dialogue automatique
         } catch (error) {
             console.warn('Erreur lors de l\'initialisation du guide:', error);
         }
@@ -64,9 +65,29 @@ class GuildGuide {
             const closeBtn = document.getElementById('dialogue-close');
 
             if (avatar) {
-                avatar.addEventListener('click', () => {
+                // Le Guild Guide est TOUJOURS cliquable - Force le clic
+                avatar.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🏰 Clic sur Guild Guide détecté!');
                     this.openDialogue();
+                }, true); // Mode capture pour priorité
+                
+                // Style visuel pour indiquer que c'est cliquable
+                avatar.style.cursor = 'pointer';
+                avatar.title = 'Cliquez pour parler au Guide de Guilde';
+                
+                // Effet visuel au survol
+                avatar.addEventListener('mouseenter', () => {
+                    avatar.style.transform = 'scale(1.1)';
+                    avatar.style.transition = 'transform 0.3s ease';
                 });
+                
+                avatar.addEventListener('mouseleave', () => {
+                    avatar.style.transform = 'scale(1)';
+                });
+            } else {
+                console.warn('⚠️ Element guild-avatar non trouvé');
             }
 
             if (closeBtn) {
@@ -105,8 +126,30 @@ class GuildGuide {
         }, 3000);
     }
 
+    setupAutoDialogue() {
+        // Système d'auto-lancement UNIQUEMENT pour les utilisateurs non connectés
+        if (!this.isLoggedIn) {
+            // Première apparition automatique après 2 secondes
+            setTimeout(() => {
+                if (!this.isLoggedIn) { // Double vérification
+                    this.openDialogue();
+                }
+            }, 2000);
+            
+            // Puis réapparition toutes les 30 secondes si pas connecté
+            this.autoDialogueTimer = setInterval(() => {
+                const dialogueBox = document.getElementById('guild-dialogue');
+                if (!this.isLoggedIn && (!dialogueBox || dialogueBox.style.display === 'none')) {
+                    this.openDialogue();
+                }
+            }, 30000);
+        }
+        // Pas de timer pour les utilisateurs connectés - ils doivent cliquer manuellement
+    }
+
     openDialogue() {
         try {
+            console.log('🏰 Ouverture du dialogue Guild Guide');
             const dialogueBox = document.getElementById('guild-dialogue');
             if (dialogueBox) {
                 dialogueBox.style.display = 'block';
@@ -114,6 +157,8 @@ class GuildGuide {
                     dialogueBox.classList.add('active');
                 }, 10);
                 this.showWelcomeMessage();
+            } else {
+                console.warn('⚠️ Element guild-dialogue non trouvé');
             }
         } catch (error) {
             console.warn('Erreur lors de l\'ouverture du dialogue:', error);
@@ -129,6 +174,19 @@ class GuildGuide {
                     dialogueBox.style.display = 'none';
                     this.dialogueState = 'welcome';
                 }, 300);
+                
+                // Si utilisateur non connecté, reprendre le timer après fermeture
+                if (!this.isLoggedIn) {
+                    // Nettoyer l'ancien timer
+                    if (this.autoDialogueTimer) {
+                        clearInterval(this.autoDialogueTimer);
+                    }
+                    // Redémarrer un nouveau timer pour 30 secondes
+                    this.autoDialogueTimer = setTimeout(() => {
+                        // Puis revenir au timer régulier
+                        this.setupAutoDialogue();
+                    }, 30000);
+                }
             }
         } catch (error) {
             console.warn('Erreur lors de la fermeture du dialogue:', error);

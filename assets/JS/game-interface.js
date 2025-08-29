@@ -3,7 +3,26 @@
 class GameInterface {
     constructor() {
         this.currentTab = 'team';
-        this.init();
+        
+        // Initialisation des images du guild guide
+        this.guildImages = [
+            '/images/guild1.png',
+            '/images/guild2.png', 
+            '/images/guild3.png',
+            '/images/guild4.png'
+        ];
+        this.currentGuildImageIndex = 0;
+        this.guildGuideInitAttempts = 0; // Compteur pour éviter les boucles infinies
+        
+        // S'assurer que le DOM est chargé avant d'initialiser
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
+        }
+        
+        // Ajouter une fonction globale pour tester le battlefield
+        window.testBattlefield = () => this.testBattlefieldVisualization();
     }
 
     init() {
@@ -38,13 +57,27 @@ class GameInterface {
     }
 
     switchTab(tabName) {
-        // Désactiver l'onglet actuel
-        document.querySelector('.tab-button.active')?.classList.remove('active');
-        document.querySelector('.tab-panel.active')?.classList.remove('active');
+        // Désactiver l'onglet actuel avec vérifications plus robustes
+        const currentActiveButton = document.querySelector('.tab-button.active');
+        if (currentActiveButton) {
+            currentActiveButton.classList.remove('active');
+        }
+        
+        const currentActivePanel = document.querySelector('.tab-panel.active');
+        if (currentActivePanel) {
+            currentActivePanel.classList.remove('active');
+        }
 
-        // Activer le nouvel onglet
-        document.querySelector(`[data-tab="${tabName}"]`)?.classList.add('active');
-        document.getElementById(`${tabName}-panel`)?.classList.add('active');
+        // Activer le nouvel onglet avec vérifications
+        const newTabButton = document.querySelector(`[data-tab="${tabName}"]`);
+        if (newTabButton) {
+            newTabButton.classList.add('active');
+        }
+        
+        const newTabPanel = document.getElementById(`${tabName}-panel`);
+        if (newTabPanel) {
+            newTabPanel.classList.add('active');
+        }
 
         this.currentTab = tabName;
 
@@ -72,7 +105,10 @@ class GameInterface {
     // =============== PERSONNAGES ===============
     loadCharacters() {
         const container = document.querySelector('.characters-grid');
-        if (!container) return;
+        if (!container) {
+            console.warn('Conteneur de personnages introuvable');
+            return;
+        }
 
         // Simuler le chargement
         container.innerHTML = '<p class="loading-text">Chargement des personnages...</p>';
@@ -119,7 +155,14 @@ class GameInterface {
         const searchBtn = document.querySelector('.search-battle-btn');
         const infoText = document.querySelector('.battle-search .info-text');
         
-        if (!searchBtn || !infoText) return;
+        if (!searchBtn) {
+            console.warn('Bouton de recherche de bataille introuvable');
+            return;
+        }
+        if (!infoText) {
+            console.warn('Texte d\'information de bataille introuvable');
+            return;
+        }
         
         // Vérifier le nombre de personnages sélectionnés
         const selectedCharacters = document.querySelectorAll('.character-card.selected');
@@ -137,7 +180,10 @@ class GameInterface {
     // =============== HISTORIQUE ===============
     async loadMatchHistory() {
         const historyContainer = document.querySelector('.match-history');
-        if (!historyContainer) return;
+        if (!historyContainer) {
+            console.warn('Conteneur d\'historique introuvable');
+            return;
+        }
         
         // Afficher un indicateur de chargement
         historyContainer.innerHTML = '<p class="loading-text"><i class="fas fa-spinner fa-spin"></i> Chargement de l\'historique...</p>';
@@ -282,7 +328,10 @@ class GameInterface {
 
     async loadRanking(filter = 'global') {
         const rankingContainer = document.querySelector('#ranking-list');
-        if (!rankingContainer) return;
+        if (!rankingContainer) {
+            console.warn('Conteneur de classement introuvable');
+            return;
+        }
         
         // Afficher un indicateur de chargement
         rankingContainer.innerHTML = '<p class="loading-text"><i class="fas fa-spinner fa-spin"></i> Chargement du classement...</p>';
@@ -382,10 +431,14 @@ class GameInterface {
         
         if (userPositionElement) {
             userPositionElement.textContent = `#${position || '?'}`;
+        } else {
+            console.warn('Élément de position utilisateur introuvable');
         }
         
         if (userRatingElement) {
             userRatingElement.textContent = `${mmr || 1200} pts`;
+        } else {
+            console.warn('Élément de score utilisateur introuvable');
         }
     }
 
@@ -397,112 +450,1368 @@ class GameInterface {
     // =============== SYSTÈME DE VISUALISATION DE COMBAT ===============
     async showCombatVisualization(matchId) {
         try {
+            // Vérifications de sécurité pour l'ID de match
+            if (!matchId) {
+                throw new Error('ID de match manquant');
+            }
+            
             const response = await fetch(`/api/matchmaking/match/${matchId}/events`);
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
             const matchData = await response.json();
+            
+            // Vérifications additionnelles des données
+            if (!matchData) {
+                throw new Error('Données de match vides');
+            }
+            
+            console.log('📊 Données de match reçues:', matchData);
             this.displayCombatVisualizationModal(matchData);
             
         } catch (error) {
             console.error('Erreur lors du chargement de la visualisation:', error);
-            this.showNotification('Erreur lors du chargement du combat', 'error');
+            this.showNotification('Erreur lors du chargement du combat: ' + error.message, 'error');
         }
     }
 
+    determinePlateauType(matchData) {
+        // Aléatoirement choisir entre medieval et dystopian
+        const plateauTypes = ['medieval', 'dystopian'];
+        return plateauTypes[Math.floor(Math.random() * plateauTypes.length)];
+    }
+    
     displayCombatVisualizationModal(matchData) {
-        // Créer le modal de visualisation de combat
-        const modalHTML = `
-            <div class="modal-overlay" id="combat-visualization-modal">
-                <div class="combat-visualization-container">
-                    <!-- Header avec contrôles -->
-                    <div class="combat-header">
-                        <div class="combat-title">
-                            <h2><i class="fas fa-swords"></i> Combat vs ${matchData.team_b.player}</h2>
+        try {
+            console.log('🔍 DEBUG: matchData complet =', JSON.stringify(matchData, null, 2));
+            // Récupérer les vraies données des équipes
+            const teamA = matchData.teamA || matchData.team_a || matchData.playerTeam;
+            const teamB = matchData.teamB || matchData.team_b || matchData.enemyTeam;
+            const currentUser = matchData.currentUser || window.userInfo?.username || 
+                               document.querySelector('[data-username]')?.dataset.username || 'bambam';
+            
+            // Vérifications de sécurité
+            if (!teamA || !teamB) {
+                console.error('Équipes manquantes:', { teamA, teamB });
+                this.showNotification('Erreur: données d\'équipe manquantes', 'error');
+                return;
+            }
+            
+            // Déterminer quelle équipe appartient au joueur actuel de manière sécurisée
+            let playerTeam, enemyTeam;
+            if (teamA && teamA.player === currentUser) {
+                playerTeam = teamA;
+                enemyTeam = teamB;
+            } else if (teamB && teamB.player === currentUser) {
+                playerTeam = teamB;
+                enemyTeam = teamA;
+            } else {
+                // Par défaut, assigner teamA comme équipe du joueur
+                playerTeam = teamA;
+                enemyTeam = teamB;
+            }
+            
+            console.log('� Teams Debug:', {
+                currentUser,
+                teamA: teamA.player,
+                teamB: teamB.player,
+                playerTeam: playerTeam.player,
+                enemyTeam: enemyTeam.player
+            });
+            
+            // Vérifier si les éléments nécessaires existent
+            let modal = document.querySelector('.battlefield-modal');
+            if (modal) {
+                modal.remove();
+            }
+            
+            // Déterminer le type de plateau selon le match
+            const plateauType = this.determinePlateauType(matchData);
+            
+            modal = document.createElement('div');
+            modal.className = 'battlefield-modal show';
+            modal.innerHTML = `
+                <div class="battlefield-container">
+                    <div class="battlefield-header">
+                        <h2>⚔️ Combat Épique en Cours ⚔️</h2>
+                        <button class="close-battlefield">×</button>
+                    </div>
+                    
+                    <div class="battlefield-content">
+                        <!-- Zone des cartes ennemies (EN HAUT) -->
+                        <div class="enemy-cards-zone">
+                            <h3>🔴 Équipe Adverse</h3>
+                            <div class="battlefield-cards enemy-cards">
+                                ${this.generateBattlefieldCards(enemyTeam, 'enemy')}
+                            </div>
                         </div>
-                        <div class="combat-controls">
+                        
+                        <!-- Arène de combat centrale CLAIRE ET NETTE -->
+                        <div class="battlefield-arena ${plateauType}">
+                            <div class="combat-zone-3d">
+                                <!-- Les personnages 3D apparaîtront ici -->
+                            </div>
+                            
+                            <!-- Zone d'animation spectaculaire centrale -->
+                            <div class="action-animation-zone">
+                                <div class="action-display"></div>
+                                <div class="combat-effects"></div>
+                            </div>
+                            
+                            <!-- Contrôles de vitesse repositionnés -->
                             <div class="speed-controls">
-                                <span>Vitesse:</span>
-                                <button class="speed-btn" data-speed="0.5">x0.5</button>
                                 <button class="speed-btn active" data-speed="1">x1</button>
                                 <button class="speed-btn" data-speed="2">x2</button>
                                 <button class="speed-btn" data-speed="5">x5</button>
                                 <button class="speed-btn" data-speed="10">x10</button>
                             </div>
-                            <button class="combat-close-btn" id="combat-close-btn">
-                                <i class="fas fa-times"></i>
-                            </button>
                         </div>
-                    </div>
-                    
-                    <!-- Guild Guide positionné à gauche et au milieu -->
-                    <div class="guild-guide-container">
-                        <div class="guild-guide" id="guild-guide">
+                        
+                        <!-- Guide de Guilde Kaamelott EN DEHORS du plateau -->
+                        <div class="battlefield-guild-guide">
                             <div class="guild-guide-avatar">
-                                <img src="/images/guild-guide.png" alt="Guild Guide" />
+                                <img src="/images/guild1.png" alt="Guide de Guilde" class="guide-avatar" id="guild-avatar-combat">
                             </div>
-                            <div class="guild-guide-commentary" id="guild-guide-commentary">
-                                <div class="commentary-bubble">
-                                    <p>Que le combat commence !</p>
-                                </div>
+                            <div class="guild-guide-bubble">
+                                <div class="bubble-arrow"></div>
+                                <p id="guide-text-combat">⚔️ Que le combat commence ! Montrez-leur de quoi vous êtes capable !</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Zone des cartes du joueur (EN BAS) -->
+                        <div class="player-cards-zone">
+                            <h3>🟢 Votre Équipe</h3>
+                            <div class="battlefield-cards player-cards">
+                                ${this.generateBattlefieldCards(playerTeam, 'player')}
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- Zone de combat principale -->
-                    <div class="combat-battlefield" id="combat-battlefield">
-                        <!-- Équipe adverse (haut) -->
-                        <div class="team-zone enemy-zone">
-                            <div class="team-characters centered-characters" id="enemy-characters">
-                                ${this.generateTeamCharacters(matchData.team_b, 'enemy')}
-                            </div>
-                        </div>
-                        
-                        <!-- Zone centrale pour les animations -->
-                        <div class="combat-center" id="combat-center">
-                            <div class="center-animation" id="center-animation"></div>
-                        </div>
-                        
-                        <!-- Équipe du joueur (bas) -->
-                        <div class="team-zone player-zone">
-                            <div class="team-characters centered-characters" id="player-characters">
-                                ${this.generateTeamCharacters(matchData.team_a, 'player')}
-                            </div>
-                        </div>
-                        
-                        <!-- Info équipe joueur en bas -->
-                        <div class="team-info-bottom player-info-bottom" id="player-info">
-                            ${matchData.team_a.name}
-                        </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Appliquer le background aléatoire à l'arène
+            const arena = modal.querySelector('.battlefield-arena');
+            if (arena) {
+                const randomBackground = this.getRandomBattlefieldBackground();
+                console.log(`🎨 Background appliqué: ${randomBackground}`);
+                arena.style.backgroundImage = `url('/images/${randomBackground}')`;
+                arena.style.backgroundSize = 'cover';
+                arena.style.backgroundPosition = 'center';
+                arena.style.backgroundRepeat = 'no-repeat';
+            }
+            
+            // Initialiser le système 3D
+            this.combat3D = new Combat3DSystem();
+            this.initCombat3DSystem(matchData);
+            
+            // Fermeture du modal
+            const closeBtn = modal.querySelector('.close-battlefield');
+            closeBtn?.addEventListener('click', () => {
+                this.closeBattlefieldModal();
+                this.resumeBackgroundVideo();
+                this.combat3D?.cleanup();
+            });
+            
+            // Gestionnaire d'échappement
+            const escapeHandler = (e) => {
+                if (e.key === 'Escape') {
+                    this.closeBattlefieldModal();
+                    this.resumeBackgroundVideo();
+                    this.combat3D?.cleanup();
+                    document.removeEventListener('keydown', escapeHandler);
+                }
+            };
+            document.addEventListener('keydown', escapeHandler);
+            
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'affichage du combat:', error);
+            console.error('Stack trace:', error.stack);
+            // Ne pas bloquer l'interface, juste afficher l'erreur
+            this.showNotification('Erreur lors de l\'affichage du combat: ' + error.message, 'error');
+        }
+    }
+
+    generateBattlefieldCards(team, teamType) {
+        // Utiliser les vraies données des personnages de la BDD
+        const characters = team.characters || team || [];
+        const teamColor = teamType === 'player' ? '#4CAF50' : '#F44336';
+        const teamBorder = teamType === 'player' ? '#388E3C' : '#D32F2F';
+        
+        return characters.map((char, index) => {
+            // Debug pour comprendre la structure des données
+            console.log('🔍 Personnage:', char.name, 'Image:', char.imagePath || char.image, 'Role:', char.role || char.class);
+            
+            // Priorité: char.imagePath > char.image > par défaut selon le rôle
+            let imageSrc = '';
+            let fallbackImage = '';
+            
+            if (char.imagePath && char.imagePath !== 'placeholder.png') {
+                imageSrc = char.imagePath;
+            } else if (char.image && char.image !== 'placeholder.png') {
+                imageSrc = char.image;
+            } else {
+                imageSrc = this.getCharacterImageByRole(char.role || char.class);
+            }
+            
+            fallbackImage = this.getCharacterImageByRole(char.role || char.class);
+            
+            // Sécuriser les données JSON pour éviter l'erreur de parsing
+            const safeCharData = {
+                name: char.name || 'Inconnu',
+                role: char.role || char.class || 'warrior',
+                image: imageSrc,
+                level: char.level || 1,
+                hp: char.hp || 100,
+                attack: char.attack || 50
+            };
+            
+            return `
+            <div class="battlefield-card ${teamType}-card" data-character-id="${index}" data-team="${teamType}" data-character='${JSON.stringify(safeCharData).replace(/'/g, "&apos;")}'>
+                <div class="card-body">
+                    <div class="character-avatar">
+                        <img src="/images/characters/${imageSrc}" alt="${char.name}" onerror="this.src='/images/characters/${fallbackImage}'" />
                     </div>
-                    
-                    <!-- Zone de narration en bas -->
-                    <div class="combat-narration" id="combat-narration">
-                        <div class="narration-text" id="narration-text">
-                            En attente du début du combat...
-                        </div>
-                        
-                        <button class="start-combat-btn" id="start-combat-btn">
-                            <i class="fas fa-play"></i> Démarrer le combat
-                        </button>
+                    <div class="character-name">${char.name}</div>
+                    <div class="character-role">
+                        <i class="${this.getRoleIcon(char.role || char.class)}"></i>
+                        ${this.getRoleName(char.role || char.class)}
                     </div>
                 </div>
             </div>
-        `;
+            `;
+        }).join('');
+    }
 
-        // Injecter le modal dans le DOM
-        document.body.insertAdjacentHTML('beforeend', modalHTML);
+    getCharacterImageByRole(role) {
+        const roleImages = {
+            'tank': 'paladin.png',
+            'mage': 'mage.png', 
+            'archer': 'archer.png',
+            'assassin': 'assassin.png',
+            'priest': 'priest.png',
+            'warrior': 'warrior.png'
+        };
+        return roleImages[role] || 'warrior.png';
+    }
 
-        // Initialiser les contrôles et animations
-        this.initCombatVisualization(matchData);
+    getRandomBattlefieldBackground() {
+        const medievalBgs = [
+            'plateauxMedieval/cimetière.png',
+            'plateauxMedieval/cours du chateau.png', 
+            'plateauxMedieval/place du village.png'
+        ];
+        const dystoBgs = [
+            'plateauxDysto/champ de bataille dysto.png',
+            'plateauxDysto/cours moderne.png',
+            'plateauxDysto/place village moderne.png'
+        ];
         
-        // Définir le background aléatoire
-        const battlefield = document.getElementById('combat-battlefield');
-        if (battlefield) {
-            const randomBg = this.getRandomBattlefield();
-            battlefield.style.backgroundImage = `url('/images/${randomBg}')`;
+        const allBgs = [...medievalBgs, ...dystoBgs];
+        return allBgs[Math.floor(Math.random() * allBgs.length)];
+    }
+
+    getKaamelottPhrase(situation = 'general') {
+        const phrases = {
+            start: [
+                "Ah ! Voilà qui va être intéressant !",
+                "Bon, on va voir ce qu'on va voir !",
+                "C'est parti mon kiki !",
+                "Alors, on commence quand vous voulez !",
+                "Ça va être du sport !",
+                "C'est le moment de vérité !",
+                "Allez-y, surprenez-moi !",
+                "Que le meilleur gagne... enfin j'espère que c'est vous !",
+                "C'est parti pour la baston !",
+                "Bon, moi je dis : qu'est-ce qu'on attend ?"
+            ],
+            attack: [
+                "Ça c'est du rentre-dedans !",
+                "Ah, la vache ! Il y va franco !",
+                "C'est ça ! Tapez sur tout ce qui bouge !",
+                "Eh ben dis donc, il se gêne pas !",
+                "Allez-y ! Mais allez-y donc !",
+                "Alors là, chapeau ! Ça c'est de l'attaque !",
+                "C'est beau ! C'est du grand art !",
+                "Ça c'est envoyé ! Sans faire de détail !",
+                "Oh là là ! Il l'a pas raté celui-là !",
+                "Voilà ce que j'appelle de l'efficacité !",
+                "C'est pas du cinéma ça ! C'est du concret !",
+                "Il a pas fait dans la dentelle !",
+                "Ça c'est du travail de professionnel !"
+            ],
+            defense: [
+                "Eh ! Il a paré ! Comme un chef !",
+                "Alors là, bravo ! Belle parade !",
+                "C'est ça ! Restez sur vos gardes !",
+                "Eh ben, il l'a vue venir celle-là !",
+                "C'est de la défense ça ! Du béton !",
+                "Ah ! Il s'y connaît en protection !",
+                "Voilà un bouclier qui sert à quelque chose !",
+                "C'est du solide ! Ça tient la route !",
+                "Belle anticipation ! Très joli !",
+                "C'est ça la vraie défense ! Du costaud !",
+                "Il tient le choc ! Respect !",
+                "Ça c'est de la résistance ! Impressionnant !"
+            ],
+            magic: [
+                "Oh ! De la magie ! Ça c'est du spectacle !",
+                "Alors là ! Ça c'est de l'artisanat !",
+                "Eh ben ! Il sort le grand jeu !",
+                "C'est de la belle ouvrage ça !",
+                "Voilà ce que j'appelle un tour de maître !",
+                "Ça c'est du niveau ! Du grand art !",
+                "Oh là là ! Il connaît son affaire !",
+                "C'est beau ! C'est lumineux !",
+                "Alors ça ! C'est de la technique !",
+                "Eh ben dis donc ! Il a des ressources !",
+                "C'est ça les vrais sortilèges !",
+                "Il maîtrise son sujet ! Chapeau !",
+                "Voilà ce qu'on appelle avoir du métier !"
+            ],
+            heal: [
+                "Ah ! Un petit coup de réparation !",
+                "C'est ça ! On soigne ses petits bobos !",
+                "Eh ! Il connaît les premiers secours !",
+                "Voilà qui va faire du bien !",
+                "C'est de la bonne médecine ça !",
+                "Ah ! Il sait y faire avec les potions !",
+                "C'est du travail de guérisseur ça !",
+                "Eh ben ! Il a de la ressource !",
+                "Voilà qui redonne la forme !",
+                "C'est ça le vrai métier de soigneur !",
+                "Ah ! On n'est jamais mieux soigné que par soi-même !",
+                "Belle intervention ! C'est du professionnel !"
+            ],
+            victory: [
+                "Alors là ! Bravo ! C'est du beau boulot !",
+                "Eh ben voilà ! C'est ça qu'on appelle une victoire !",
+                "Ah ! C'est fini ! Et bien joué !",
+                "Voilà ! Mission accomplie ! Du grand art !",
+                "C'est ça ! On a gagné ! Comme des chefs !",
+                "Eh ben dis donc ! Ça c'est de la performance !",
+                "Bravo ! C'est du travail de professionnel !",
+                "Alors là, chapeau ! C'est mérité !",
+                "Voilà ce que j'appelle une belle victoire !",
+                "C'est fini ! Et c'est bien fini ! Bravo !",
+                "Ah ! C'est ça qu'on voulait voir !",
+                "Mission accomplie ! Du beau travail !"
+            ],
+            defeat: [
+                "Ah ! Eh ben... c'est pas passé loin !",
+                "Bon, on fera mieux la prochaine fois !",
+                "C'est pas grave ! L'important c'est de participer !",
+                "Eh ! On peut pas gagner à tous les coups !",
+                "C'est ça ! On apprend de ses erreurs !",
+                "Bon, on refera ça plus tard !",
+                "C'est pas dramatique ! On s'en remettra !",
+                "Eh ben ! Ça arrive aux meilleurs !",
+                "C'est comme ça ! On gagne pas toujours !",
+                "Bon, on dira que c'était un entraînement !",
+                "C'est pas la fin du monde ! On recommencera !",
+                "Eh ! L'adversaire était coriace !"
+            ]
+        };
+        
+        const situationPhrases = phrases[situation] || phrases.general || phrases.start;
+        return situationPhrases[Math.floor(Math.random() * situationPhrases.length)];
+    }
+
+    showKaamelottComment(situation = 'general') {
+        const phrase = this.getKaamelottPhrase(situation);
+        const guideText = document.getElementById('guide-text');
+        const commentary = document.getElementById('guild-guide-commentary');
+        const avatar = document.querySelector('.guild-guide-avatar img');
+        
+        if (guideText) {
+            guideText.textContent = phrase;
         }
+        
+        if (commentary) {
+            commentary.classList.add('show');
+            setTimeout(() => {
+                commentary.classList.remove('show');
+            }, 4000);
+        }
+        
+        if (avatar) {
+            avatar.src = this.getNextGuildImage();
+        }
+        
+        console.log('🗣️ Guild Guide Kaamelott:', phrase);
+    }
+
+    initBattlefieldCombatVisualization(matchData) {
+        // Initialiser le nouveau système de combat 3D
+        this.initCombat3DSystem(matchData);
+        
+        // Setup des contrôles existants
+        const modal = document.getElementById('combat-visualization-modal');
+        const closeBtn = document.getElementById('combat-close-btn');  
+        const startBtn = document.getElementById('start-combat-btn');
+        const speedBtns = document.querySelectorAll('.speed-btn');
+        
+        let isPlaying = false;
+        let currentSpeed = 2; // Vitesse par défaut x2
+        
+        // Faire le modal plein écran
+        if (modal) {
+            modal.style.width = '100vw';
+            modal.style.height = '100vh';
+            document.body.classList.add('battlefield-active');
+        }
+        
+        // Fonction de fermeture
+        const closeModal = () => {
+            if (modal) {
+                this.resumeBackgroundVideo();
+                document.body.classList.remove('battlefield-active');
+                modal.remove();
+                this.combat3D?.cleanup();
+            }
+        };
+        
+        closeBtn?.addEventListener('click', closeModal);
+        
+        // Fermer avec Escape
+        const escapeHandler = (e) => {
+            if (e.key === 'Escape') {
+                closeModal();
+                document.removeEventListener('keydown', escapeHandler);
+            }
+        };
+        document.addEventListener('keydown', escapeHandler);
+        
+        // Contrôles de vitesse
+        speedBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                speedBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentSpeed = parseFloat(btn.dataset.speed);
+                
+                // Mettre à jour la vitesse du système 3D
+                if (this.combat3D) {
+                    this.combat3D.speedMultiplier = currentSpeed;
+                }
+                
+                console.log('🎮 Vitesse changée:', currentSpeed + 'x');
+            });
+        });
+    }
+    
+    // =============== SYSTÈME DE COMBAT 3D ===============
+    
+    initCombat3DSystem(matchData) {
+        // Récupérer les équipes avec différents formats possibles
+        const teamA = matchData.teamA || matchData.team_a || matchData.playerTeam;
+        const teamB = matchData.teamB || matchData.team_b || matchData.enemyTeam;
+        // Utiliser l'utilisateur connecté depuis window.userInfo ou les données du match
+        const currentUser = matchData.currentUser || window.userInfo?.username || 
+                           document.querySelector('[data-username]')?.dataset.username || 'bambam';
+        
+        console.log('🔍 DEBUG initCombat3D:', {
+            teamA: teamA,
+            teamB: teamB,
+            currentUser: currentUser,
+            matchDataKeys: Object.keys(matchData)
+        });
+        
+        // Vérifications de sécurité
+        if (!teamA || !teamB) {
+            console.error('❌ Équipes manquantes dans initCombat3D:', { teamA, teamB });
+            return;
+        }
+        
+        // Déterminer quelle équipe appartient au joueur actuel
+        let playerTeam, enemyTeam;
+        if (teamA && teamA.player === currentUser) {
+            playerTeam = teamA;
+            enemyTeam = teamB;
+        } else if (teamB && teamB.player === currentUser) {
+            playerTeam = teamB;
+            enemyTeam = teamA;
+        } else {
+            // Par défaut, assigner teamA comme équipe du joueur
+            playerTeam = teamA;
+            enemyTeam = teamB;
+        }
+        
+        console.log('🎯 Équipes assignées:', { 
+            playerTeam: playerTeam?.name, 
+            enemyTeam: enemyTeam?.name,
+            playerCharacters: playerTeam?.characters?.length || 0,
+            enemyCharacters: enemyTeam?.characters?.length || 0
+        });
+        
+        // Attendre que le modal soit monté dans le DOM
+        setTimeout(() => {
+            if (playerTeam && enemyTeam) {
+                this.setupCardTo3DTransition(playerTeam, enemyTeam);
+                this.setupGuildGuideForCombat();
+            } else {
+                console.error('❌ Impossible de configurer le 3D - équipes invalides');
+            }
+        }, 500);
+    }
+    
+    setupCardTo3DTransition(playerTeam, enemyTeam) {
+        const combatZone = document.querySelector('.combat-zone-3d');
+        if (!combatZone) {
+            console.error('❌ Zone de combat 3D non trouvée !');
+            return;
+        }
+        
+        // Vérifications de sécurité
+        if (!playerTeam || !enemyTeam) {
+            console.error('❌ Équipes manquantes pour la transition 3D:', { playerTeam, enemyTeam });
+            return;
+        }
+        
+        // Créer les personnages 3D pour l'équipe du joueur
+        const playerCards = document.querySelectorAll('.player-card');
+        const playerCharacters = playerTeam.characters || [];
+        
+        console.log('🎮 Création des personnages joueur:', playerCharacters.length);
+        
+        playerCards.forEach((card, index) => {
+            if (playerCharacters[index]) {
+                const character3D = this.combat3D.create3DCharacter(
+                    playerCharacters[index], 
+                    'player', 
+                    index
+                );
+                
+                // Animation de sortie de la carte
+                this.animateCharacterFromCard(card, character3D, 'player');
+                combatZone.appendChild(character3D);
+            }
+        });
+        
+        // Créer les personnages 3D pour l'équipe adverse
+        const enemyCards = document.querySelectorAll('.enemy-card');
+        const enemyCharacters = enemyTeam.characters || [];
+        
+        console.log('⚔️ Création des personnages ennemis:', enemyCharacters.length);
+        
+        enemyCards.forEach((card, index) => {
+            if (enemyCharacters[index]) {
+                const character3D = this.combat3D.create3DCharacter(
+                    enemyCharacters[index], 
+                    'enemy', 
+                    index
+                );
+                
+                // Animation de sortie de la carte
+                this.animateCharacterFromCard(card, character3D, 'enemy');
+                combatZone.appendChild(character3D);
+            }
+        });
+        
+        // Démarrer le combat après les animations
+        setTimeout(() => {
+            this.startEpicCombat();
+        }, 3000);
+    }
+    
+    animateCharacterFromCard(card, character3D, teamType) {
+        const cardRect = card.getBoundingClientRect();
+        
+        // Positionner le personnage 3D sur la carte initialement
+        character3D.style.position = 'fixed';
+        character3D.style.left = (cardRect.left + cardRect.width / 2 - 40) + 'px';
+        character3D.style.top = (cardRect.top + cardRect.height / 2 - 60) + 'px';
+        character3D.style.transform = 'scale(0.3) translateY(0)';
+        character3D.style.opacity = '0';
+        character3D.style.zIndex = '1000';
+        
+        // Animation d'apparition
+        setTimeout(() => {
+            character3D.style.opacity = '1';
+            character3D.style.transform = 'scale(0.6) translateY(-30px)';
+        }, 200);
+        
+        // Animation de sortie vers le battlefield
+        setTimeout(() => {
+            // Utiliser le système de positionnement 3D
+            const position = parseInt(character3D.dataset.position) || 0;
+            console.log(`🔧 ANIMATION: dataset.position=${character3D.dataset.position}, parsed=${position}, teamType=${teamType}`);
+            this.combat3D.positionCharacter(character3D, position, teamType);
+            
+            character3D.style.position = 'absolute';
+            character3D.style.transform = 'scale(1) translateY(0)';
+            character3D.style.zIndex = '100';
+            
+            // Effet d'entrée spectaculaire
+            character3D.classList.add('character-entrance');
+            setTimeout(() => {
+                character3D.classList.remove('character-entrance');
+            }, 1000);
+            
+        }, 1200 + (Math.random() * 600)); // Délai aléatoire
+    }
+    
+    startEpicCombat() {
+        console.log('🔥 Démarrage du combat épique !');
+        
+        // Changer le texte du guild guide
+        this.updateGuildGuideText("Le combat fait rage ! Regardez ces mouvements épiques !");
+        
+        // Commencer les actions de combat
+        this.executeEpicCombatSequence();
+    }
+    
+    executeEpicCombatSequence() {
+        const playerCharacters = Array.from(document.querySelectorAll('.player-character-3d'));
+        const enemyCharacters = Array.from(document.querySelectorAll('.enemy-character-3d'));
+        
+        if (playerCharacters.length === 0 || enemyCharacters.length === 0) {
+            console.log('⚠️ Pas de personnages trouvés pour le combat');
+            return;
+        }
+        
+        let actionIndex = 0;
+        
+        const executeNextAction = () => {
+            if (actionIndex >= 12) { // 12 actions de combat
+                this.finishEpicCombat();
+                return;
+            }
+            
+            // Choisir un attaquant et une cible aléatoirement
+            const allCharacters = [...playerCharacters, ...enemyCharacters];
+            const attacker = allCharacters[Math.floor(Math.random() * allCharacters.length)];
+            
+            // Choisir une cible de l'équipe adverse
+            const isPlayerAttacker = attacker.classList.contains('player-character-3d');
+            const potentialTargets = isPlayerAttacker ? enemyCharacters : playerCharacters;
+            const target = potentialTargets[Math.floor(Math.random() * potentialTargets.length)];
+            
+            if (attacker && target) {
+                // Déterminer le type d'action selon le rôle
+                const attackerRole = attacker.dataset.role || 'tank';
+                const actionType = this.getActionTypeByRole(attackerRole);
+                
+                // Exécuter l'animation
+                this.combat3D.animateCharacterAction(attacker, target, actionType);
+                
+                // Mettre à jour l'affichage d'action centrale
+                this.updateCentralActionDisplay(attacker, target, actionType);
+            }
+            
+            actionIndex++;
+            
+            // Programmer la prochaine action selon la vitesse
+            const delay = 2500 / (this.combatSpeed || 2);
+            setTimeout(executeNextAction, delay);
+        };
+        
+        executeNextAction();
+    }
+    
+    getActionTypeByRole(role) {
+        const actions = {
+            tank: ['physical_attack', 'defend'],
+            dps: ['physical_attack', 'physical_attack'], // Plus d'attaques
+            support: ['heal', 'magic_spell']
+        };
+        
+        const roleActions = actions[role] || actions.tank;
+        return roleActions[Math.floor(Math.random() * roleActions.length)];
+    }
+    
+    updateCentralActionDisplay(attacker, target, actionType) {
+        const actionDisplay = document.querySelector('.action-display');
+        if (!actionDisplay) return;
+        
+        const attackerName = attacker.dataset.name || 'Combattant';
+        const targetName = target.dataset.name || 'Cible';
+        
+        const actionText = this.getActionText(actionType, attackerName, targetName);
+        const actionIcon = this.getActionIcon(actionType);
+        
+        actionDisplay.innerHTML = `
+            <div class="action-announcement">
+                <div class="action-icon">${actionIcon}</div>
+                <div class="action-text">${actionText}</div>
+            </div>
+        `;
+        
+        actionDisplay.classList.add('show');
+        
+        setTimeout(() => {
+            actionDisplay.classList.remove('show');
+        }, 1800);
+    }
+    
+    getActionText(actionType, attacker, target) {
+        const texts = {
+            physical_attack: `${attacker} attaque ${target} !`,
+            magic_spell: `${attacker} lance un sort sur ${target} !`,
+            heal: `${attacker} soigne ${target} !`,
+            defend: `${attacker} se défend !`
+        };
+        
+        return texts[actionType] || `${attacker} agit sur ${target} !`;
+    }
+    
+    getActionIcon(actionType) {
+        const icons = {
+            physical_attack: '⚔️',
+            magic_spell: '⚡',
+            heal: '💚',
+            defend: '🛡️'
+        };
+        
+        return icons[actionType] || '⚔️';
+    }
+    
+    finishEpicCombat() {
+        // Déterminer le vainqueur aléatoirement pour la démo
+        const isPlayerVictory = Math.random() > 0.5;
+        
+        this.showCombatResult(isPlayerVictory);
+    }
+    
+    showCombatResult(isVictory) {
+        const actionDisplay = document.querySelector('.action-display');
+        if (!actionDisplay) return;
+        
+        const resultHTML = `
+            <div class="combat-result ${isVictory ? 'victory' : 'defeat'}">
+                <div class="result-icon">${isVictory ? '🏆' : '💀'}</div>
+                <div class="result-title">${isVictory ? 'VICTOIRE!' : 'DÉFAITE'}</div>
+                <div class="result-subtitle">${isVictory ? 'Vos champions triomphent !' : 'Vos champions sont tombés...'}</div>
+            </div>
+        `;
+        
+        actionDisplay.innerHTML = resultHTML;
+        actionDisplay.classList.add('show', 'final-result');
+        
+        // Mettre à jour le guild guide
+        this.updateGuildGuideText(isVictory ? 
+            "Magnifique victoire ! Vos stratégies portent leurs fruits !" : 
+            "Une défaite honorable... Analysez vos erreurs pour vous améliorer !"
+        );
+        
+        // Auto-fermeture après 5 secondes
+        setTimeout(() => {
+            const modal = document.querySelector('.battlefield-modal');
+            if (modal) {
+                modal.remove();
+                this.resumeBackgroundVideo();
+                this.combat3D?.cleanup();
+            }
+        }, 5000);
+    }
+    
+    setupGuildGuideForCombat() {
+        const guildGuide = document.querySelector('.battlefield-guild-guide');
+        const guideText = document.querySelector('#guide-text-combat');
+        const guildBubble = document.querySelector('.guild-guide-bubble');
+        const guideAvatar = document.querySelector('#guild-avatar-combat');
+        
+        if (!guildGuide || !guideText) {
+            console.warn('❌ Guide de guilde combat non trouvé');
+            return;
+        }
+        
+        // Images aléatoires pour le guide
+        const guildImages = ['guild1.png', 'guild2.png', 'guild3.png', 'guild4.png'];
+        let currentImageIndex = 0;
+        
+        // Fonction pour changer d'avatar
+        const rotateAvatar = () => {
+            if (guideAvatar) {
+                currentImageIndex = (currentImageIndex + 1) % guildImages.length;
+                guideAvatar.src = `/images/${guildImages[currentImageIndex]}`;
+            }
+        };
+        
+        // Phrases Kaamelott pour le combat
+        const combatPhrases = [
+            "⚔️ Que le combat commence ! Montrez-leur de quoi vous êtes capable !",
+            "🛡️ C'est pas sorcier ! Il suffit de taper plus fort que l'ennemi !",
+            "⚡ Attention ! Un sort puissant arrive !",
+            "🩹 Ça c'est du bon soin ! Comme ma mère me faisait !",
+            "🏹 Tir précis ! C'est ça l'expérience !",
+            "⚔️ Combat épique en cours... Ne lâchez rien !",
+            "🏆 Victoire ! Comme d'habitude, on a été brillants !",
+            "💀 Défaite... C'est pas grave, on fera mieux la prochaine fois !",
+            "🔥 Ça chauffe ! Le combat s'intensifie !",
+            "⭐ Coup critique ! Ça c'est de la technique !"
+        ];
+        
+        let phraseIndex = 0;
+        
+        // Commenter toutes les 3 secondes
+        const commentInterval = setInterval(() => {
+            if (phraseIndex < combatPhrases.length) {
+                guideText.textContent = combatPhrases[phraseIndex];
+                phraseIndex++;
+                
+                // Changer d'avatar à chaque commentaire
+                rotateAvatar();
+                
+                // Animation de la bulle
+                if (guildBubble) {
+                    guildBubble.classList.add('show');
+                    
+                    // Animation de l'avatar
+                    if (guideAvatar) {
+                        guideAvatar.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            guideAvatar.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                }
+            } else {
+                clearInterval(commentInterval);
+            }
+        }, 3000);
+        
+        // Stocker l'ID de l'intervalle dans le modal pour le nettoyer plus tard
+        const modal = document.querySelector('.battlefield-modal');
+        if (modal) {
+            modal.dataset.commentInterval = commentInterval;
+        }
+        
+        // Afficher la bulle dès le départ
+        if (guildBubble) {
+            setTimeout(() => {
+                guildBubble.classList.add('show');
+            }, 500);
+        }
+    }
+    
+    updateGuildGuideText(text) {
+        const guideText = document.querySelector('#guide-text');
+        if (guideText) {
+            guideText.textContent = text;
+        }
+    }
+
+    // =============== UTILITAIRES DE PLATEAU ===============
+    
+    determinePlateauType(matchData) {
+        // Aléatoirement choisir entre medieval et dystopian
+        const plateauTypes = ['medieval', 'dystopian'];
+        return plateauTypes[Math.floor(Math.random() * plateauTypes.length)];
+    }
+    
+    resumeBackgroundVideo() {
+        const videos = document.querySelectorAll('video[data-was-playing="true"]');
+        videos.forEach(video => {
+            video.play();
+            video.removeAttribute('data-was-playing');
+        });
+    }
+    
+    pauseBackgroundVideo() {
+        const videos = document.querySelectorAll('video');
+        videos.forEach(video => {
+            if (!video.paused) {
+                video.pause();
+                video.dataset.wasPlaying = 'true';
+            }
+        });
+    }
+
+    // =============== ANCIENNE MÉTHODE DE TEST (À CONSERVER) ===============
+    testBattlefieldVisualization() {
+        const nameElement = card.querySelector('.character-name');
+        const name = nameElement ? nameElement.textContent : 'Fighter';
+        const teamColor = teamType === 'player' ? '#4CAF50' : '#F44336';
+        
+        // Récupérer les données du personnage depuis la carte de manière sécurisée
+        let characterData = {};
+        try {
+            characterData = JSON.parse(card.dataset.character || card.dataset.characterData || '{}');
+        } catch (error) {
+            console.warn('Erreur lors du parsing des données de personnage:', error);
+            characterData = {
+                name: nameElement?.textContent || 'Fighter',
+                role: 'warrior',
+                level: 1,
+                hp: 100,
+                attack: 50
+            };
+        }
+        
+        const role = characterData.role || 'warrior';
+        const characterImage = card.querySelector('.character-avatar img');
+        const imageSrc = characterImage ? characterImage.src : `/images/characters/${this.getCharacterImageByRole(role)}`;
+        
+        const character = document.createElement('div');
+        character.className = `battlefield-character ${teamType}-character ${role}-character`;
+        character.dataset.role = role;
+        character.dataset.name = name;
+        character.innerHTML = `
+            <div class="character-model" style="border-color: ${teamColor}">
+                <img src="${imageSrc}" alt="${name}" class="character-image" />
+                <div class="character-name-tag">${name}</div>
+            </div>
+            <div class="character-health-bar">
+                <div class="health-fill" style="background-color: ${teamColor}"></div>
+                <div class="health-text">${characterData.hp || 150}</div>
+            </div>
+        `;
+        
+        return character;
+    }
+
+    animateCardToPosition(card, position, character) {
+        // Obtenir les positions pour l'animation
+        const cardRect = card.getBoundingClientRect();
+        const positionRect = position.getBoundingClientRect();
+        
+        // Créer un clone pour l'animation
+        const clone = card.cloneNode(true);
+        clone.style.position = 'fixed';
+        clone.style.top = cardRect.top + 'px';
+        clone.style.left = cardRect.left + 'px';
+        clone.style.width = cardRect.width + 'px';
+        clone.style.height = cardRect.height + 'px';
+        clone.style.zIndex = '9999';
+        clone.style.transition = 'all 1.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+        
+        document.body.appendChild(clone);
+        
+        // Masquer la carte originale
+        card.style.opacity = '0.3';
+        
+        // Animer vers la position
+        requestAnimationFrame(() => {
+            clone.style.top = positionRect.top + positionRect.height / 2 - cardRect.height / 2 + 'px';
+            clone.style.left = positionRect.left + positionRect.width / 2 - cardRect.width / 2 + 'px';
+            clone.style.transform = 'scale(0.6)';
+        });
+        
+        // Remplacer par le personnage après l'animation
+        setTimeout(() => {
+            clone.remove();
+            position.appendChild(character);
+            character.style.animation = 'character-appear 0.8s ease-out';
+        }, 1500);
+    }
+
+    playBattlefieldCombat(matchData, speed) {
+        // Simulation d'événements de combat avec animations épiques
+        const events = matchData.events || this.generateEpicCombatEvents();
+        
+        console.log('🎮 Démarrage du combat épique sur le champ de bataille!');
+        console.log('⚡ Vitesse:', speed + 'x');
+        
+        // Commentaire de début de combat
+        this.showKaamelottComment('start');
+        
+        // Simuler le combat avec des effets visuels épiques
+        this.simulateEpicBattlefieldEvents(events, speed);
+    }
+
+    simulateEpicBattlefieldEvents(events, speed) {
+        const effectsContainer = document.getElementById('combat-effects');
+        const animationsContainer = document.getElementById('combat-animations');
+        let eventIndex = 0;
+        
+        const processNextEvent = () => {
+            if (eventIndex >= events.length) {
+                // Déterminer victoire ou défaite aléatoirement pour la démo
+                const isVictory = Math.random() > 0.3; // 70% de chance de victoire
+                if (isVictory) {
+                    this.showBattlefieldVictory();
+                } else {
+                    this.showBattlefieldDefeat();
+                }
+                return;
+            }
+            
+            const event = events[eventIndex];
+            this.showEpicBattlefieldEffect(event, effectsContainer);
+            this.playEpicAnimation(event, animationsContainer, speed);
+            
+            // Commentaire du Guild Guide selon l'action
+            this.showKaamelottComment(event.type || 'attack');
+            
+            eventIndex++;
+            setTimeout(processNextEvent, (2000 / speed));
+        };
+        
+        processNextEvent();
+    }
+
+    // =============== FONCTIONS D'EFFETS SPÉCIAUX ===============
+    
+    createSlashEffect(target, container) {
+        const slash = document.createElement('div');
+        slash.className = 'slash-effect';
+        slash.innerHTML = '⚡💥⚡';
+        slash.style.position = 'absolute';
+        slash.style.fontSize = '3rem';
+        slash.style.color = '#ff6b6b';
+        slash.style.animation = 'slashAnimation 0.5s ease-out';
+        
+        const rect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        slash.style.left = (rect.left - containerRect.left) + 'px';
+        slash.style.top = (rect.top - containerRect.top) + 'px';
+        
+        container.appendChild(slash);
+        setTimeout(() => slash.remove(), 500);
+    }
+
+    createShieldEffect(defender, container) {
+        const shield = document.createElement('div');
+        shield.className = 'shield-effect';
+        shield.innerHTML = '🛡️✨🛡️';
+        shield.style.position = 'absolute';
+        shield.style.fontSize = '2.5rem';
+        shield.style.color = 'gold';
+        shield.style.animation = 'shieldAnimation 0.8s ease-out';
+        
+        const rect = defender.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        shield.style.left = (rect.left - containerRect.left) + 'px';
+        shield.style.top = (rect.top - containerRect.top) + 'px';
+        
+        container.appendChild(shield);
+        setTimeout(() => shield.remove(), 800);
+    }
+
+    createMagicEffect(mage, container) {
+        const magic = document.createElement('div');
+        magic.className = 'magic-effect';
+        magic.innerHTML = '⚡🔮✨🌟⚡';
+        magic.style.position = 'absolute';
+        magic.style.fontSize = '2rem';
+        magic.style.color = '#9b59b6';
+        magic.style.animation = 'magicAnimation 1s ease-out';
+        
+        const rect = mage.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        magic.style.left = (rect.left - containerRect.left) + 'px';
+        magic.style.top = (rect.top - containerRect.top) + 'px';
+        
+        container.appendChild(magic);
+        setTimeout(() => magic.remove(), 1000);
+    }
+
+    createHealEffect(healer, container) {
+        const heal = document.createElement('div');
+        heal.className = 'heal-effect';
+        heal.innerHTML = '💚✨🌟✨💚';
+        heal.style.position = 'absolute';
+        heal.style.fontSize = '2rem';
+        heal.style.color = '#2ecc71';
+        heal.style.animation = 'healAnimation 1.2s ease-out';
+        
+        const rect = healer.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        heal.style.left = (rect.left - containerRect.left) + 'px';
+        heal.style.top = (rect.top - containerRect.top) + 'px';
+        
+        container.appendChild(heal);
+        setTimeout(() => heal.remove(), 1200);
+    }
+
+    getRandomCharacter(characters, team = null, role = null) {
+        const filtered = Array.from(characters).filter(char => {
+            const matchesTeam = !team || char.classList.contains(`${team}-character`);
+            const matchesRole = !role || char.classList.contains(`${role}-character`);
+            return matchesTeam && matchesRole;
+        });
+        
+        return filtered[Math.floor(Math.random() * filtered.length)];
+    }
+
+    getEffectIcon(type) {
+        const icons = {
+            'attack': '⚔️💥',
+            'defense': '🛡️✨',
+            'magic': '🔮⚡',
+            'heal': '💚✨',
+            'critical': '💥🔥',
+            'miss': '💨👻'
+        };
+        return icons[type] || '⚔️';
+    }
+
+    generateEpicCombatEvents() {
+        return [
+            { description: "⚔️ Le combat commence !", type: 'start' },
+            { description: "🛡️ Le Paladin charge bravement !", type: 'attack' },
+            { description: "🏹 L'Archer riposte avec précision !", type: 'attack' },
+            { description: "⚡ Le Mage lance un sort dévastateur !", type: 'magic' },
+            { description: "🛡️ Belle parade du défenseur !", type: 'defense' },
+            { description: "🩹 Soins miraculeux du Guérisseur !", type: 'heal' },
+            { description: "🔥 Le Berserker entre en rage !", type: 'attack' },
+            { description: "🌟 Sort de protection magique !", type: 'magic' },
+            { description: "⚔️ Combo d'attaques spectaculaires !", type: 'attack' },
+            { description: "🏆 Combat épique terminé !", type: 'victory' }
+        ];
+    }
+
+    showEpicBattlefieldEffect(event, container) {
+        if (!container) return;
+        
+        const effectIcon = this.getEffectIcon(event.type);
+        const effectClass = `effect-${event.type}`;
+        
+        const effect = document.createElement('div');
+        effect.className = `combat-effect-animation ${effectClass}`;
+        effect.innerHTML = `
+            <div class="effect-icon">${effectIcon}</div>
+            <div class="effect-text">${event.description}</div>
+            <div class="effect-particles"></div>
+        `;
+        
+        container.appendChild(effect);
+        
+        // Retirer l'effet après animation
+        setTimeout(() => {
+            if (effect.parentNode) {
+                effect.remove();
+            }
+        }, 2500);
+    }
+
+    playEpicAnimation(event, container, speed) {
+        if (!container) return;
+        
+        const characters = document.querySelectorAll('.battlefield-character');
+        const animationType = event.type || 'attack';
+        
+        switch (animationType) {
+            case 'attack':
+                this.animateAttack(characters, container, speed);
+                break;
+            case 'defense':
+                this.animateDefense(characters, container, speed);
+                break;
+            case 'magic':
+                this.animateMagic(characters, container, speed);
+                break;
+            case 'heal':
+                this.animateHeal(characters, container, speed);
+                break;
+            default:
+                this.animateGeneric(characters, container, speed);
+        }
+    }
+
+    animateAttack(characters, container, speed) {
+        const attacker = this.getRandomCharacter(characters, 'player');
+        const target = this.getRandomCharacter(characters, 'enemy');
+        
+        if (attacker && target) {
+            // Animation d'attaque
+            attacker.style.transform = 'scale(1.2) translateX(20px)';
+            attacker.style.transition = `all ${0.3 / speed}s ease-out`;
+            
+            setTimeout(() => {
+                target.style.transform = 'scale(0.9) translateX(-10px)';
+                target.style.filter = 'brightness(0.7)';
+                
+                // Effet de coup
+                this.createSlashEffect(target, container);
+                
+                setTimeout(() => {
+                    attacker.style.transform = '';
+                    target.style.transform = '';
+                    target.style.filter = '';
+                }, 500 / speed);
+            }, 200 / speed);
+        }
+    }
+
+    animateDefense(characters, container, speed) {
+        const defender = this.getRandomCharacter(characters, 'player');
+        
+        if (defender) {
+            // Animation de défense avec bouclier
+            defender.style.transform = 'scale(1.1)';
+            defender.style.filter = 'brightness(1.3) drop-shadow(0 0 20px gold)';
+            
+            this.createShieldEffect(defender, container);
+            
+            setTimeout(() => {
+                defender.style.transform = '';
+                defender.style.filter = '';
+            }, 800 / speed);
+        }
+    }
+
+    animateMagic(characters, container, speed) {
+        const mage = this.getRandomCharacter(characters, null, 'mage');
+        
+        if (mage) {
+            // Animation de magie
+            mage.style.transform = 'scale(1.15) translateY(-10px)';
+            mage.style.filter = 'brightness(1.5) drop-shadow(0 0 30px purple)';
+            
+            this.createMagicEffect(mage, container);
+            
+            setTimeout(() => {
+                mage.style.transform = '';
+                mage.style.filter = '';
+            }, 1000 / speed);
+        }
+    }
+
+    animateHeal(characters, container, speed) {
+        const healer = this.getRandomCharacter(characters, 'player');
+        
+        if (healer) {
+            // Animation de soin
+            healer.style.filter = 'brightness(1.8) drop-shadow(0 0 25px lightgreen)';
+            
+            this.createHealEffect(healer, container);
+            
+            // Mettre à jour la barre de vie
+            const healthBar = healer.querySelector('.health-fill');
+            if (healthBar) {
+                healthBar.style.width = '100%';
+            }
+            
+            setTimeout(() => {
+                healer.style.filter = '';
+            }, 1200 / speed);
+        }
+    }
+
+    animateGeneric(characters, container, speed) {
+        const character = this.getRandomCharacter(characters);
+        
+        if (character) {
+            character.style.transform = 'scale(1.1)';
+            setTimeout(() => {
+                character.style.transform = '';
+            }, 400 / speed);
+        }
+    }
+
+    generateDemoCombatEvents() {
+        return [
+            { description: "Le combat commence!" },
+            { description: "Guerrier attaque avec son épée!" },
+            { description: "Mage lance un sort de feu!" },
+            { description: "L'archer vise avec précision!" },
+            { description: "Combat épique en cours..." },
+            { description: "Victoire!" }
+        ];
+    }
+
+    showBattlefieldVictory() {
+        const modal = document.getElementById('combat-visualization-modal');
+        if (!modal) return;
+        
+        const victoryOverlay = document.createElement('div');
+        victoryOverlay.className = 'battlefield-victory-overlay';
+        victoryOverlay.innerHTML = `
+            <div class="victory-content">
+                <h2>🏆 VICTOIRE! 🏆</h2>
+                <p>Combat terminé avec succès!</p>
+                <button class="victory-btn" onclick="document.getElementById('combat-close-btn').click()">
+                    Continuer
+                </button>
+            </div>
+        `;
+        
+        modal.appendChild(victoryOverlay);
+        
+        // Commentaire de victoire
+        this.showKaamelottComment('victory');
+    }
+
+    showBattlefieldDefeat() {
+        const modal = document.getElementById('combat-visualization-modal');
+        if (!modal) return;
+        
+        const defeatOverlay = document.createElement('div');
+        defeatOverlay.className = 'battlefield-defeat-overlay';
+        defeatOverlay.innerHTML = `
+            <div class="defeat-content">
+                <h2>💀 DÉFAITE 💀</h2>
+                <p>Ce n'est que partie remise !</p>
+                <button class="defeat-btn" onclick="document.getElementById('combat-close-btn').click()">
+                    Recommencer
+                </button>
+            </div>
+        `;
+        
+        modal.appendChild(defeatOverlay);
+        
+        // Commentaire de défaite
+        this.showKaamelottComment('defeat');
+    }
+
+    // =============== FONCTION DE TEST POUR LE BATTLEFIELD ===============
+    testBattlefieldVisualization() {
+        console.log('🎮 Test de la visualisation battlefield');
+        
+        // Données de test simulées avec vraies classes
+        const mockMatchData = {
+            id: 'test-123',
+            team_a: {
+                player: 'Vous',
+                characters: [
+                    { name: 'Paladin Divin', role: 'tank', level: 20, hp: 250, attack: 90, image: 'paladin.png' },
+                    { name: 'Mage de Feu', role: 'mage', level: 18, hp: 150, attack: 180, image: 'mage.png' },
+                    { name: 'Prêtre Guérisseur', role: 'priest', level: 16, hp: 130, attack: 70, image: 'priest.png' }
+                ]
+            },
+            team_b: {
+                player: 'Adversaire Redoutable',
+                characters: [
+                    { name: 'Guerrier Berserker', role: 'warrior', level: 19, hp: 200, attack: 160, image: 'warrior.png' },
+                    { name: 'Archer Précis', role: 'archer', level: 17, hp: 140, attack: 130, image: 'archer.png' },
+                    { name: 'Assassin Furtif', role: 'assassin', level: 21, hp: 180, attack: 100, image: 'assassin.png' }
+                ]
+            },
+            events: [
+                { description: "⚔️ Le combat commence !" },
+                { description: "🛡️ Paladin charge vers l'ennemi !" },
+                { description: "🏹 L'Archer riposte avec précision !" },
+                { description: "⚡ Sorcier lance un sort dévastateur !" },
+                { description: "🩹 Guérisseur soigne ses alliés !" },
+                { description: "🔥 Berserker entre en rage !" },
+                { description: "🌿 Druide invoque la nature !" },
+                { description: "⚔️ Combat épique en cours..." },
+                { description: "🏆 Victoire héroïque !" }
+            ]
+        };
+        
+        // Lancer la visualisation avec les données de test
+        this.displayCombatVisualizationModal(mockMatchData);
+    }
+
+    pauseBackgroundVideo() {
+        // Stopper toutes les vidéos de background
+        const videos = document.querySelectorAll('video[autoplay]');
+        videos.forEach(video => {
+            video.pause();
+        });
+        
+        // Stopper les animations CSS si nécessaire
+        const animatedElements = document.querySelectorAll('.animated-bg, .gradient-animation');
+        animatedElements.forEach(element => {
+            element.style.animationPlayState = 'paused';
+        });
+    }
+
+    resumeBackgroundVideo() {
+        // Reprendre toutes les vidéos de background
+        const videos = document.querySelectorAll('video[autoplay]');
+        videos.forEach(video => {
+            video.play();
+        });
+        
+        // Reprendre les animations CSS
+        const animatedElements = document.querySelectorAll('.animated-bg, .gradient-animation');
+        animatedElements.forEach(element => {
+            element.style.animationPlayState = 'running';
+        });
     }
 
     getRandomBattlefield() {
@@ -523,70 +1832,102 @@ class GameInterface {
     generateTeamCharacters(team, teamType) {
         let charactersHTML = '';
         
+        // Vérifications de sécurité pour l'objet team
+        if (!team) {
+            console.warn(`Équipe ${teamType} manquante, utilisation des données par défaut`);
+            team = { characters: [] };
+        }
+        
         // Si on a les vraies données des personnages, on les utilise
-        if (team.characters && team.characters.length > 0) {
+        if (team.characters && Array.isArray(team.characters) && team.characters.length > 0) {
             team.characters.forEach((character, index) => {
-                const roleIcon = this.getRoleIcon(character.role);
+                if (!character) {
+                    console.warn(`Personnage ${index} manquant dans l'équipe ${teamType}`);
+                    return;
+                }
+                
                 const characterImage = this.getCharacterImage(character);
+                const roleClass = character.role ? character.role.toLowerCase() : 'fighter';
                 charactersHTML += `
-                    <div class="character modern-card" id="${teamType}-char-${index}">
-                        <div class="character-image">
-                            <img src="${characterImage}" alt="${character.name}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="character-fallback" style="display: none;">
-                                <i class="${roleIcon}"></i>
+                    <div class="fighter-card" id="${teamType}-char-${index}">
+                        <div class="fighter-image">
+                            <img src="${characterImage}" alt="${character.name || 'Personnage'}" />
+                            <div class="class-overlay ${roleClass}">${this.getRoleName(character.role)}</div>
+                            <div class="stats-overlay">
+                                <div class="stat-item hp">
+                                    <i class="fas fa-heart"></i>
+                                    <span>${character.hp || 100}</span>
+                                </div>
+                                <div class="stat-item attack">
+                                    <i class="fas fa-sword"></i>
+                                    <span>${character.atk || 50}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="character-info">
-                            <div class="character-name">${character.name}</div>
-                            <div class="character-role ${character.role}">${this.getRoleName(character.role)}</div>
-                            <div class="character-stats">
-                                <span class="stat hp" title="HP">❤️ ${character.hp}</span>
-                                <span class="stat atk" title="ATK">⚔️ ${character.atk}</span>
-                            </div>
+                        <div class="fighter-name">
+                            <h4>${character.name || 'Héros'}</h4>
                         </div>
-                        <div class="character-effects" id="${teamType}-effects-${index}"></div>
-                        <div class="character-glow"></div>
+                        <div class="fighter-health">
+                            <div class="health-bar" style="width: 100%"></div>
+                        </div>
                     </div>
                 `;
             });
         } else {
             // Fallback avec des personnages par défaut
-            for (let i = 0; i < 3; i++) {
-                const defaultImage = '/images/characters/placeholder.png';
+            const defaultCharacters = [
+                { name: 'Héros 1', role: 'warrior', hp: 100, atk: 50 },
+                { name: 'Héros 2', role: 'mage', hp: 80, atk: 70 },
+                { name: 'Héros 3', role: 'archer', hp: 90, atk: 60 }
+            ];
+            
+            defaultCharacters.forEach((character, index) => {
+                const characterImage = this.getCharacterImage(character);
+                const roleClass = character.role.toLowerCase();
                 charactersHTML += `
-                    <div class="character modern-card" id="${teamType}-char-${i}">
-                        <div class="character-image">
-                            <img src="${defaultImage}" alt="Héros ${i + 1}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                            <div class="character-fallback" style="display: none;">
-                                <i class="fas fa-sword"></i>
+                    <div class="fighter-card" id="${teamType}-char-${index}">
+                        <div class="fighter-image">
+                            <img src="${characterImage}" alt="${character.name}" />
+                            <div class="class-overlay ${roleClass}">${this.getRoleName(character.role)}</div>
+                            <div class="stats-overlay">
+                                <div class="stat-item hp">
+                                    <i class="fas fa-heart"></i>
+                                    <span>${character.hp}</span>
+                                </div>
+                                <div class="stat-item attack">
+                                    <i class="fas fa-sword"></i>
+                                    <span>${character.atk}</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="character-info">
-                            <div class="character-name">Héros ${i + 1}</div>
-                            <div class="character-role fighter">Combattant</div>
-                            <div class="character-stats">
-                                <span class="stat hp">❤️ 100</span>
-                                <span class="stat atk">⚔️ 50</span>
-                            </div>
+                        <div class="fighter-name">
+                            <h4>${character.name}</h4>
                         </div>
-                        <div class="character-effects" id="${teamType}-effects-${i}"></div>
-                        <div class="character-glow"></div>
+                        <div class="fighter-health">
+                            <div class="health-bar" style="width: 100%"></div>
+                        </div>
                     </div>
                 `;
-            }
+            });
         }
         
         return charactersHTML;
     }
 
     getCharacterImage(character) {
+        // Vérifications de sécurité pour l'objet character
+        if (!character) {
+            console.warn('Personnage manquant, utilisation de l\'image par défaut');
+            return '/images/characters/warrior.png';
+        }
+        
         // Si le personnage a une artworkUrl, l'utiliser en priorité
-        if (character && character.artworkUrl) {
+        if (character.artworkUrl) {
             return character.artworkUrl;
         }
         
         // Sinon, utiliser le système de mapping existant
-        const characterName = typeof character === 'string' ? character : character?.name;
+        const characterName = typeof character === 'string' ? character : character.name;
         
         // Mapper les noms des personnages vers leurs images
         const characterImages = {
@@ -605,7 +1946,7 @@ class GameInterface {
         // Essayer plusieurs approches pour matcher l'image
         let imagePath = characterImages['default'];
         
-        if (characterName) {
+        if (characterName && typeof characterName === 'string') {
             const normalizedName = characterName.toLowerCase().replace(/\s+/g, '');
             
             // Essayer par nom exact
@@ -642,15 +1983,23 @@ class GameInterface {
     }
 
     getRoleName(role) {
+        // Vérifications de sécurité pour le rôle
+        if (!role || typeof role !== 'string') {
+            return 'Combattant';
+        }
+        
         const roleNames = {
             'tank': 'Tank',
             'healer': 'Soigneur',
             'mage': 'Mage',
             'assassin': 'Assassin',
             'archer': 'Archer',
-            'fighter': 'Combattant'
+            'fighter': 'Combattant',
+            'warrior': 'Guerrier',
+            'priest': 'Prêtre',
+            'paladin': 'Paladin'
         };
-        return roleNames[role] || 'Combattant';
+        return roleNames[role.toLowerCase()] || 'Combattant';
     }
 
     getRoleIcon(role) {
@@ -686,6 +2035,10 @@ class GameInterface {
         // Fermer le modal
         const closeModal = () => {
             if (modal) {
+                // Reprendre la vidéo de background
+                this.resumeBackgroundVideo();
+                // Retirer la classe combat-active
+                document.body.classList.remove('combat-active');
                 modal.remove();
             }
         };
@@ -714,7 +2067,9 @@ class GameInterface {
                 speedBtns.forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentSpeed = parseFloat(btn.dataset.speed);
-                currentSpeedSpan.textContent = `x${currentSpeed}`;
+                if (currentSpeedSpan) {
+                    currentSpeedSpan.textContent = `x${currentSpeed}`;
+                }
                 
                 // Commentaire du guild guide sur la vitesse
                 const speedComments = {
@@ -745,8 +2100,27 @@ class GameInterface {
         });
     }
 
-    // =============== GUILD GUIDE SYSTEM ===============
+    // =============== GUILD GUIDE SYSTEM AMÉLIORÉ ===============
     initGuildGuide() {
+        // Limiter le nombre de tentatives pour éviter les boucles infinies
+        this.guildGuideInitAttempts++;
+        if (this.guildGuideInitAttempts > 50) {
+            console.warn('🏰 Arrêt des tentatives d\'initialisation du Guild Guide après 50 essais');
+            return;
+        }
+        
+        // Vérification de l'existence de l'élément avant initialisation
+        const guildGuideElement = document.querySelector('.guild-guide-container');
+        if (!guildGuideElement) {
+            console.log(`🏰 Guild Guide container non trouvé (tentative ${this.guildGuideInitAttempts}/50), initialisation différée`);
+            // Réessayer après un court délai si l'élément n'existe pas encore
+            setTimeout(() => this.initGuildGuide(), 100);
+            return;
+        }
+        
+        console.log('🏰 Guild Guide initialisé avec succès');
+        
+        // Initialiser les commentaires du guide (images déjà initialisées dans le constructeur)
         this.guildGuideComments = [
             // Commentaires de début
             "Mes champions, le combat va commencer !",
@@ -780,26 +2154,92 @@ class GameInterface {
         this.commentCooldown = 2000; // 2 secondes entre les commentaires
     }
 
-    showGuildGuideComment(text, emoji = '💬') {
-        const commentaryText = document.getElementById('commentary-text');
-        const guideStatus = document.getElementById('guide-status');
-        const bubble = document.querySelector('.commentary-bubble');
-        
-        if (commentaryText && guideStatus && bubble) {
-            // Mettre à jour le contenu
-            commentaryText.textContent = text;
-            guideStatus.textContent = emoji;
-            
-            // Animation d'apparition
-            bubble.classList.add('guide-speaking');
-            
-            // Retirer l'animation après un délai
-            setTimeout(() => {
-                bubble.classList.remove('guide-speaking');
-            }, 3000);
-            
-            console.log('🗣️ Guild Guide:', text);
+    getNextGuildImage() {
+        // Vérifier que les images sont initialisées
+        if (!this.guildImages || !Array.isArray(this.guildImages) || this.guildImages.length === 0) {
+            console.warn('Images du guild guide non initialisées, utilisation de l\'image par défaut');
+            return '/images/guild1.png';
         }
+        
+        // Vérifier l'index
+        if (typeof this.currentGuildImageIndex !== 'number' || this.currentGuildImageIndex < 0) {
+            this.currentGuildImageIndex = 0;
+        }
+        
+        const image = this.guildImages[this.currentGuildImageIndex];
+        this.currentGuildImageIndex = (this.currentGuildImageIndex + 1) % this.guildImages.length;
+        return image || '/images/guild1.png';
+    }
+
+    showGuildGuideComment(text, emoji = '💬') {
+        const guildGuideAvatar = document.querySelector('.guild-guide-avatar img');
+        const commentaryElement = document.querySelector('.guild-guide-commentary');
+        const commentaryBubble = document.querySelector('.commentary-bubble p');
+        
+        // Vérifications robustes avant manipulation DOM
+        if (!guildGuideAvatar) {
+            console.warn('🏰 Guild guide avatar non trouvé');
+            return;
+        }
+        
+        if (!commentaryElement) {
+            console.warn('🏰 Guild guide commentary element non trouvé');
+            return;
+        }
+        
+        if (!commentaryBubble) {
+            console.warn('🏰 Guild guide commentary bubble non trouvé - tentative de création');
+            // Essayer de créer l'élément manquant
+            const bubbleContainer = document.querySelector('.commentary-bubble');
+            if (bubbleContainer) {
+                const pElement = document.createElement('p');
+                bubbleContainer.appendChild(pElement);
+                // Retry avec le nouvel élément
+                setTimeout(() => this.showGuildGuideComment(text, emoji), 50);
+                return;
+            } else {
+                console.warn('🏰 Conteneur commentary-bubble non trouvé - abandon');
+                return;
+            }
+        }
+        
+        // Changer l'image du guild guide à chaque nouveau texte
+        const nextImage = this.getNextGuildImage();
+        if (nextImage && guildGuideAvatar) {
+            try {
+                guildGuideAvatar.src = nextImage;
+            } catch (error) {
+                console.error('Erreur lors du changement d\'image du guide:', error);
+            }
+        }
+        
+        // Mettre à jour le texte avec protection supplémentaire
+        try {
+            if (commentaryBubble && typeof commentaryBubble.textContent !== 'undefined') {
+                commentaryBubble.textContent = `${emoji} ${text}`;
+            }
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour du texte:', error);
+            return;
+        }
+        
+        // Afficher le commentaire avec animation
+        try {
+            if (commentaryElement) {
+                commentaryElement.classList.add('show');
+                
+                // Cacher après 4 secondes
+                setTimeout(() => {
+                    if (commentaryElement && commentaryElement.classList) {
+                        commentaryElement.classList.remove('show');
+                    }
+                }, 4000);
+            }
+        } catch (error) {
+            console.error('Erreur lors de l\'animation:', error);
+        }
+        
+        console.log('🗣️ Guild Guide:', text);
     }
 
     getRandomGuildComment(type = 'action') {
@@ -1058,32 +2498,44 @@ class GameInterface {
     }
 
     async animateRoundStart(centerElement, event) {
-        centerElement.innerHTML = `
-            <div class="round-start-modern">
-                <div class="round-girl">
-                    <img src="/images/plateauxMedieval/guildGuide.jpg" alt="Annonceur" class="round-announcer">
-                    <div class="speech-bubble">
-                        <div class="round-text">${event.target_name || 'Nouveau Round !'}</div>
+        if (!centerElement) {
+            console.warn('🎬 Élément central non trouvé pour l\'animation de début de round');
+            return;
+        }
+        
+        try {
+            centerElement.innerHTML = `
+                <div class="round-start-modern">
+                    <div class="round-girl">
+                        <img src="/images/plateauxMedieval/guildGuide.jpg" alt="Annonceur" class="round-announcer">
+                        <div class="speech-bubble">
+                            <div class="round-text">${event.target_name || 'Nouveau Round !'}</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
-        centerElement.classList.add('animate-round-start');
-        
-        await this.sleep(1200);
-        
-        centerElement.classList.remove('animate-round-start');
-        centerElement.innerHTML = '';
+            `;
+            centerElement.classList.add('animate-round-start');
+            
+            await this.sleep(1200);
+            
+            centerElement.classList.remove('animate-round-start');
+            centerElement.innerHTML = '';
+        } catch (error) {
+            console.error('Erreur lors de l\'animation de début de round:', error);
+        }
     }
 
     async animateCharacterAction(event, actionType) {
+        // Animation centrale d'action
+        await this.showCentralAnimation(actionType);
+        
         // Déterminer quel personnage agit basé sur les données de l'événement
         let teamType, charIndex;
         
         // Essayer de déterminer l'équipe et le personnage basé sur les données de l'événement
         if (event.target_name && event.target_name.includes('🔵')) {
             teamType = 'player';
-        } else if (event.target_name && event.target_name.includes('�')) {
+        } else if (event.target_name && event.target_name.includes('🔴')) {
             teamType = 'enemy';
         } else {
             // Fallback aléatoire
@@ -1093,49 +2545,116 @@ class GameInterface {
         charIndex = Math.floor(Math.random() * 3);
         
         const characterElement = document.getElementById(`${teamType}-char-${charIndex}`);
-        const effectsElement = document.getElementById(`${teamType}-effects-${charIndex}`);
         
-        if (characterElement && effectsElement) {
-            // Animation du personnage
-            characterElement.classList.add('character-acting');
-            
-            // Animation de l'effet selon l'action
-            let effectHTML = '';
-            let effectClass = '';
-            
+        if (characterElement) {
+            // Animation du personnage selon l'action
             switch (actionType) {
                 case 'ATTACK':
-                    effectHTML = '<div class="attack-effect"><i class="fas fa-fist-raised"></i></div>';
-                    effectClass = 'effect-attack';
+                    characterElement.classList.add('attacking');
+                    setTimeout(() => characterElement.classList.remove('attacking'), 800);
                     break;
                 case 'HEAL':
-                    effectHTML = '<div class="heal-effect"><i class="fas fa-heart"></i></div>';
-                    effectClass = 'effect-heal';
+                    characterElement.classList.add('healing');
+                    setTimeout(() => characterElement.classList.remove('healing'), 1000);
                     break;
                 case 'DEFENSE':
-                    effectHTML = '<div class="defense-effect"><i class="fas fa-shield"></i></div>';
-                    effectClass = 'effect-defense';
+                    characterElement.classList.add('defending');
+                    setTimeout(() => characterElement.classList.remove('defending'), 600);
                     break;
-                default:
-                    // Actions aléatoires pour plus de variété
-                    const randomActions = [
-                        { html: '<div class="magic-effect"><i class="fas fa-magic"></i></div>', class: 'effect-magic' },
-                        { html: '<div class="speed-effect"><i class="fas fa-bolt"></i></div>', class: 'effect-speed' },
-                        { html: '<div class="attack-effect"><i class="fas fa-sword"></i></div>', class: 'effect-attack' }
-                    ];
-                    const randomAction = randomActions[Math.floor(Math.random() * randomActions.length)];
-                    effectHTML = randomAction.html;
-                    effectClass = randomAction.class;
             }
-            
-            effectsElement.innerHTML = effectHTML;
-            effectsElement.classList.add(effectClass);
-            
-            await this.sleep(800);
-            
-            characterElement.classList.remove('character-acting');
-            effectsElement.classList.remove(effectClass);
-            effectsElement.innerHTML = '';
+        }
+    }
+
+    async showCentralAnimation(actionType) {
+        const animationElement = document.getElementById('combat-animation');
+        if (!animationElement) return;
+
+        let animationHTML = '';
+        let animationClass = '';
+
+        switch (actionType) {
+            case 'ATTACK':
+                const attackTypes = [
+                    { html: '<i class="fas fa-sword"></i>', class: 'sword-attack', emoji: '⚔️' },
+                    { html: '<i class="fas fa-bow-arrow"></i>', class: 'arrow-attack', emoji: '🏹' },
+                    { html: '<i class="fas fa-fist-raised"></i>', class: 'punch-attack', emoji: '👊' }
+                ];
+                const attackType = attackTypes[Math.floor(Math.random() * attackTypes.length)];
+                animationHTML = attackType.html;
+                animationClass = attackType.class;
+                break;
+                
+            case 'MAGIC':
+                const magicTypes = [
+                    { html: '<i class="fas fa-bolt"></i>', class: 'lightning-attack', emoji: '⚡' },
+                    { html: '<i class="fas fa-fire"></i>', class: 'fire-attack', emoji: '🔥' },
+                    { html: '<i class="fas fa-snowflake"></i>', class: 'ice-attack', emoji: '❄️' }
+                ];
+                const magicType = magicTypes[Math.floor(Math.random() * magicTypes.length)];
+                animationHTML = magicType.html;
+                animationClass = magicType.class;
+                break;
+                
+            case 'HEAL':
+                const healTypes = [
+                    { html: '<i class="fas fa-heart"></i>', class: 'heart-heal', emoji: '💚' },
+                    { html: '<i class="fas fa-seedling"></i>', class: 'nature-heal', emoji: '🌱' },
+                    { html: '<i class="fas fa-plus-circle"></i>', class: 'potion-heal', emoji: '🧪' }
+                ];
+                const healType = healTypes[Math.floor(Math.random() * healTypes.length)];
+                animationHTML = healType.html;
+                animationClass = healType.class;
+                break;
+                
+            case 'DEFENSE':
+                const defenseTypes = [
+                    { html: '<i class="fas fa-shield-alt"></i>', class: 'shield-block', emoji: '🛡️' },
+                    { html: '<i class="fas fa-fist-raised"></i>', class: 'counter-attack', emoji: '🤜' }
+                ];
+                const defenseType = defenseTypes[Math.floor(Math.random() * defenseTypes.length)];
+                animationHTML = defenseType.html;
+                animationClass = defenseType.class;
+                break;
+                
+            default:
+                animationHTML = '<i class="fas fa-star"></i>';
+                animationClass = 'default-action';
+        }
+
+        // Afficher l'animation avec protection
+        try {
+            if (!animationElement) {
+                console.warn('🎬 Élément d\'animation non trouvé');
+                return;
+            }
+            animationElement.innerHTML = animationHTML;
+            animationElement.className = `combat-animation ${animationClass} show`;
+        } catch (error) {
+            console.error('Erreur lors de l\'affichage de l\'animation:', error);
+            return;
+        }
+        
+        await this.sleep(600);
+        
+        // Cacher l'animation avec protection
+        try {
+            if (animationElement) {
+                animationElement.classList.remove('show');
+                animationElement.classList.add('hide');
+            }
+        } catch (error) {
+            console.error('Erreur lors de la suppression des classes:', error);
+        }
+        
+        await this.sleep(200);
+        
+        try {
+            if (animationElement) {
+                animationElement.className = 'combat-animation';
+                animationElement.innerHTML = '';
+            }
+        } catch (error) {
+            console.error('Erreur lors du nettoyage de l\'animation:', error);
         }
     }
 
@@ -1412,6 +2931,26 @@ class GameInterface {
         }
     }
 
+    closeBattlefieldModal() {
+        const modal = document.querySelector('.battlefield-modal');
+        if (modal) {
+            // Nettoyer l'intervalle de commentaires
+            const commentInterval = modal.dataset.commentInterval;
+            if (commentInterval) {
+                clearInterval(parseInt(commentInterval));
+                delete modal.dataset.commentInterval;
+            }
+            
+            // Arrêter les vidéos de background
+            if (this.pauseBackgroundVideo) {
+                this.pauseBackgroundVideo();
+            }
+            
+            // Fermer le modal
+            modal.remove();
+        }
+    }
+
     shareMatchRecap(matchId) {
         // Copier le lien vers le presse-papier
         const shareUrl = `${window.location.origin}/match/${matchId}/recap`;
@@ -1438,6 +2977,9 @@ class GameInterface {
         }
     }
 }
+
+// Export global pour les tests
+window.GameInterface = GameInterface;
 
 // Initialisation
 document.addEventListener('DOMContentLoaded', function() {

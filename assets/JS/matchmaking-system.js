@@ -195,6 +195,13 @@ function stopStatusCheck() {
 }
 
 function checkStatus() {
+    // Vérification temporaire pour éviter le spam pendant les tests 3D
+    if (window.location.pathname.includes('test') || document.querySelector('.battlefield-modal')) {
+        console.log('🧪 Arrêt temporaire du polling API pendant les tests 3D');
+        stopStatusCheck();
+        return;
+    }
+    
     fetch('/api/matchmaking/status')
     .then(response => response.json())
     .then(data => {
