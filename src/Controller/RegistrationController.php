@@ -38,8 +38,10 @@ class RegistrationController extends AbstractController
             $entityManager->persist($player);
             $entityManager->flush();
 
-            // Connecter automatiquement l'utilisateur après inscription
-            return $security->login($player, 'form_login', 'main');
+            // Ne pas tenter de connecter automatiquement l'utilisateur ici pour éviter
+            // les boucles de redirection sur certains hébergements.
+            $this->addFlash('success', 'Compte créé avec succès. Veuillez vous connecter.');
+            return $this->redirectToRoute('app_login');
         }
 
         return $this->render('registration/register.html.twig', [
