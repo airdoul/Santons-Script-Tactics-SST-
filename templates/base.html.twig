@@ -21,6 +21,10 @@
                     preferredIcon: '{{ app.user ? (app.user.preferredIcon ?? 'user') : 'user' }}'
                 };
             </script>
+            {% if app.environment == 'dev' %}
+                <script src="{{ asset('assets/JS/test-battlefield-3d.js') }}"></script>
+                <script src="{{ asset('assets/JS/debug-positioning.js') }}"></script>
+            {% endif %}
         {% endblock %}
     </head>
     <body>

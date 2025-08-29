@@ -14,6 +14,7 @@ class GuildGuide {
             this.checkUserStatus();
             this.createGuideInterface();
             this.startImageRotation();
+            this.setupAutoDialogue(); // Fonctionnalité ajoutée - dialogue automatique
         } catch (error) {
             console.warn('Erreur lors de l\'initialisation du guide:', error);
         }
@@ -64,9 +65,29 @@ class GuildGuide {
             const closeBtn = document.getElementById('dialogue-close');
 
             if (avatar) {
-                avatar.addEventListener('click', () => {
+                // Le Guild Guide est TOUJOURS cliquable - Force le clic
+                avatar.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🏰 Clic sur Guild Guide détecté!');
                     this.openDialogue();
+                }, true); // Mode capture pour priorité
+                
+                // Style visuel pour indiquer que c'est cliquable
+                avatar.style.cursor = 'pointer';
+                avatar.title = 'Cliquez pour parler au Guide de Guilde';
+                
+                // Effet visuel au survol
+                avatar.addEventListener('mouseenter', () => {
+                    avatar.style.transform = 'scale(1.1)';
+                    avatar.style.transition = 'transform 0.3s ease';
                 });
+                
+                avatar.addEventListener('mouseleave', () => {
+                    avatar.style.transform = 'scale(1)';
+                });
+            } else {
+                console.warn('⚠️ Element guild-avatar non trouvé');
             }
 
             if (closeBtn) {
@@ -105,8 +126,30 @@ class GuildGuide {
         }, 3000);
     }
 
+    setupAutoDialogue() {
+        // Système d'auto-lancement UNIQUEMENT pour les utilisateurs non connectés
+        if (!this.isLoggedIn) {
+            // Première apparition automatique après 2 secondes
+            setTimeout(() => {
+                if (!this.isLoggedIn) { // Double vérification
+                    this.openDialogue();
+                }
+            }, 2000);
+            
+            // Puis réapparition toutes les 30 secondes si pas connecté
+            this.autoDialogueTimer = setInterval(() => {
+                const dialogueBox = document.getElementById('guild-dialogue');
+                if (!this.isLoggedIn && (!dialogueBox || dialogueBox.style.display === 'none')) {
+                    this.openDialogue();
+                }
+            }, 30000);
+        }
+        // Pas de timer pour les utilisateurs connectés - ils doivent cliquer manuellement
+    }
+
     openDialogue() {
         try {
+            console.log('🏰 Ouverture du dialogue Guild Guide');
             const dialogueBox = document.getElementById('guild-dialogue');
             if (dialogueBox) {
                 dialogueBox.style.display = 'block';
@@ -114,6 +157,8 @@ class GuildGuide {
                     dialogueBox.classList.add('active');
                 }, 10);
                 this.showWelcomeMessage();
+            } else {
+                console.warn('⚠️ Element guild-dialogue non trouvé');
             }
         } catch (error) {
             console.warn('Erreur lors de l\'ouverture du dialogue:', error);
@@ -129,6 +174,19 @@ class GuildGuide {
                     dialogueBox.style.display = 'none';
                     this.dialogueState = 'welcome';
                 }, 300);
+                
+                // Si utilisateur non connecté, reprendre le timer après fermeture
+                if (!this.isLoggedIn) {
+                    // Nettoyer l'ancien timer
+                    if (this.autoDialogueTimer) {
+                        clearInterval(this.autoDialogueTimer);
+                    }
+                    // Redémarrer un nouveau timer pour 30 secondes
+                    this.autoDialogueTimer = setTimeout(() => {
+                        // Puis revenir au timer régulier
+                        this.setupAutoDialogue();
+                    }, 30000);
+                }
             }
         } catch (error) {
             console.warn('Erreur lors de la fermeture du dialogue:', error);
@@ -171,6 +229,9 @@ class GuildGuide {
                     </button>
                     <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.showTeamStrategy()">
                         <i class="fas fa-chess"></i> Stratégies d'Équipe
+                    </button>
+                    <button class="dialogue-btn debug" onclick="event.stopPropagation(); window.guildGuide.showDebugMenu()" style="background: #ff6b6b;">
+                        <i class="fas fa-bug"></i> Debug Outils
                     </button>
                 `;
             }
@@ -406,6 +467,81 @@ class GuildGuide {
                 <li>La <strong>stratégie d'équipe</strong> est importante</li>
             </ul>
             <p>Concentrez-vous sur la formation et l'équipement de votre équipe !</p>`
+        );
+    }
+
+    showDebugMenu() {
+        try {
+            const textEl = document.getElementById('dialogue-text');
+            const buttonsEl = document.getElementById('dialogue-buttons');
+
+            if (!textEl || !buttonsEl) return;
+
+            textEl.innerHTML = `<p>Outils de développement et debug :</p>`;
+
+            buttonsEl.innerHTML = `
+                <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.runPositioningTest()">
+                    <i class="fas fa-crosshairs"></i> Test Positionnement
+                </button>
+                <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.debugActiveCombat()">
+                    <i class="fas fa-sword"></i> Debug Combat Actuel
+                </button>
+                <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.showSystemInfo()">
+                    <i class="fas fa-info-circle"></i> Informations Système
+                </button>
+                <button class="dialogue-btn back" onclick="event.stopPropagation(); window.guildGuide.showWelcomeMessage()">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </button>
+            `;
+        } catch (error) {
+            console.warn('Erreur lors de l\'affichage du menu debug:', error);
+        }
+    }
+
+    runPositioningTest() {
+        this.showDetailedResponse(
+            "Test de Positionnement",
+            `<p><strong>Test en cours...</strong></p>
+            <p>Vérifiez la console (F12) pour les détails du test.</p>`
+        );
+        
+        // Lancer le test de positionnement
+        if (window.debugPositioning) {
+            window.debugPositioning();
+        } else {
+            console.error('❌ Fonction debugPositioning non disponible');
+        }
+    }
+
+    debugActiveCombat() {
+        this.showDetailedResponse(
+            "Debug Combat Actuel",
+            `<p><strong>Analyse du combat en cours...</strong></p>
+            <p>Vérifiez la console (F12) pour les détails.</p>`
+        );
+        
+        // Debug du combat actuel
+        if (window.debugCombatPositioning) {
+            window.debugCombatPositioning();
+        } else {
+            console.error('❌ Fonction debugCombatPositioning non disponible');
+        }
+    }
+
+    showSystemInfo() {
+        const combat3dAvailable = typeof Combat3DSystem !== 'undefined';
+        const gameInterfaceAvailable = typeof gameInterface !== 'undefined';
+        const debugAvailable = typeof window.debugPositioning !== 'undefined';
+        
+        this.showDetailedResponse(
+            "Informations Système",
+            `<p><strong>État des composants :</strong></p>
+            <ul>
+                <li>Combat3DSystem: ${combat3dAvailable ? '✅ Disponible' : '❌ Non disponible'}</li>
+                <li>Game Interface: ${gameInterfaceAvailable ? '✅ Disponible' : '❌ Non disponible'}</li>
+                <li>Debug Tools: ${debugAvailable ? '✅ Disponible' : '❌ Non disponible'}</li>
+                <li>Utilisateur: ${this.isLoggedIn ? `✅ ${this.userName}` : '❌ Non connecté'}</li>
+            </ul>`
         );
     }
 }

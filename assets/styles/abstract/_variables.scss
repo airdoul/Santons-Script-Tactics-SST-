@@ -1,5 +1,7 @@
+// ========== IMPORTS ==========
+@use 'fonts' as *;
 
-// COULEURS TEAM FIGHT TACTICS THEME - MÉDIÉVAL
+// ========== COULEURS TEAM FIGHT TACTICS THEME - MÉDIÉVAL ==========
 $primary-color: #8b3a3a;        // Rouge brique (armures, bannières)
 $secondary-color: #b8860b;      // Or vieilli (détails royaux, dorures)
 $tertiary-color: #556b2f;       // Vert mousse (forêts, nature)
@@ -16,6 +18,12 @@ $success-color: $tertiary-color;
 $warning-color: $secondary-color;
 $danger-color: #a52a2a;         // Rouge sang
 $info-color: #4169e1;           // Bleu royal
+
+// ========== TYPOGRAPHIE ==========
+// Les fonts sont maintenant définies dans _fonts.scss
+$font-family-titles: $font-titles;
+$font-family-secondary: $font-secondary;
+$font-family-body: $font-body;
 
 
 

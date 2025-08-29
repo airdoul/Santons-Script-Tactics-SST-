@@ -1,0 +1,42 @@
+// ========== CONFIGURATION DES FONTS GOOGLE ==========
+
+// Import des fonts Google
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Trirong:wght@300;400;500;600;700&family=Hind+Vadodara:wght@300;400;500;600;700&display=swap');
+
+// ========== VARIABLES DE FONTS ==========
+
+// Font principale pour les titres (médiéval, élégant)
+$font-titles: 'Cinzel', serif;
+
+// Font secondaire pour les éléments importants
+$font-secondary: 'Trirong', serif;
+
+// Font pour le texte courant (moderne, lisible)
+$font-body: 'Hind Vadodara', sans-serif;
+
+// ========== MIXINS DE TYPOGRAPHY ==========
+
+// Mixin pour les titres principaux
+@mixin title-style($size: 2rem, $weight: 600) {
+    font-family: $font-titles;
+    font-size: $size;
+    font-weight: $weight;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+// Mixin pour les sous-titres et éléments importants
+@mixin secondary-style($size: 1.2rem, $weight: 500) {
+    font-family: $font-secondary;
+    font-size: $size;
+    font-weight: $weight;
+    letter-spacing: 0.3px;
+}
+
+// Mixin pour le texte courant
+@mixin body-style($size: 1rem, $weight: 400) {
+    font-family: $font-body;
+    font-size: $size;
+    font-weight: $weight;
+    line-height: 1.6;
+}

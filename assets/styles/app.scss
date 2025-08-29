@@ -1,106 +1,25 @@
+// ========== SANTONS SCRIPT TACTICS - STYLES PRINCIPAUX ==========
+
+// ========== ABSTRACTIONS ==========
+@use 'abstract/fonts';
 @use 'abstract/variables' as *;
 @use 'abstract/base';
 
+// ========== COMPOSANTS ==========
+@use 'components/utilities';
 @use 'components/navbar';
 @use 'components/game-interface';
-@use 'components/combat-visualization';
+@use 'components/battlefield-combat-3d'; // Système 3D combat
 @use 'components/combat-pending-notification';
 @use 'components/guild-guide';
 @use 'components/theme-system';
 @use 'components/ranking';
 @use 'components/auth-forms';
 
-@use 'sass:color';
-
+// ========== PAGES ==========
 @use 'pages/homepage';
 @use 'pages/access-denied';
 @use 'pages/profile';
 
-
-
-//  STYLES GLOBAUX A INTEGRER DANS LE SCSS ET SORTIR DE APP.SCSS
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Arial', sans-serif;
-//   background: linear-gradient(135deg, 
-//     rgba(226, 114, 91, 0.1) 0%,
-//     rgba(204, 119, 34, 0.1) 25%,
-//     rgba(74, 112, 67, 0.1) 50%,
-//     rgba(248, 247, 244, 0.2) 75%,
-//     rgba(226, 114, 91, 0.05) 100%
-//   );
-  background-attachment: fixed;
-  background-size: 400% 400%;
-  animation: gradientShift 15s ease infinite;
-  color: $text-color;
-  line-height: 1.6;
-  padding-top: 120px; // Espace pour la navbar fixe
-  min-height: 100vh;
-
-//   &::before {
-//     content: '';
-//     position: fixed;
-//     top: 0;
-//     left: 0;
-//     right: 0;
-//     bottom: 0;
-//     background-image: 
-//       radial-gradient(circle at 20% 80%, rgba(226, 114, 91, 0.1) 0%, transparent 50%),
-//       radial-gradient(circle at 80% 20%, rgba(204, 119, 34, 0.1) 0%, transparent 50%),
-//       radial-gradient(circle at 40% 40%, rgba(74, 112, 67, 0.1) 0%, transparent 50%);
-//     pointer-events: none;
-//     z-index: -1;
-//   }
-}
-
-@keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-main {
-  min-height: calc(100vh - 120px);
-}
-
-//  UTILITAIRES 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 25px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
-  text-align: center;
-  
-  &.btn-primary {
-    background: $primary-color;
-    color: $white;
-    
-    &:hover {
-      background: color.adjust($primary-color, $lightness: -10%);
-    }
-  }
-  
-  &.btn-secondary {
-    background: $secondary-color;
-    color: $white;
-    
-    &:hover {
-      background: color.adjust($secondary-color, $lightness: -10%);
-    }
-  }
-}
+// ========== IMPORTS SASS ==========
+@use 'sass:color';

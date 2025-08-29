@@ -1,5 +1,6 @@
 /* =============== GUIDE DE GUILDE - STYLES TFT =============== */
 @use '../abstract/variables' as *;
+@use '../abstract/fonts' as *;
 @use 'sass:color';
 
 .guild-guide-container {
@@ -7,7 +8,7 @@
   left: 2rem;
   top: 8rem;  // Aligné avec le centre du titre (navbar 80px + margin 32px + demi h1 28px)
   z-index: 1000;
-  font-family: 'Arial', sans-serif;
+  @include body-style();
 }
 
 .guild-avatar {
