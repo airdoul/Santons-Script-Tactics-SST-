@@ -15,11 +15,14 @@ class Combat3DSystem {
     create3DCharacter(characterData, teamType, position) {
         const characterId = `${teamType}-${characterData.name}-${Date.now()}`;
         
-        // Définir le style 3D selon la classe
-        const characterStyle = this.get3DCharacterStyle(characterData.role || characterData.class);
+        // Convertir la classe en rôle Tank/DPS/Support
+        const battleRole = this.convertClassToBattleRole(characterData.role || characterData.class);
+        
+        // Définir le style 3D selon le rôle de combat
+        const characterStyle = this.get3DCharacterStyle(battleRole);
         
         const characterElement = document.createElement('div');
-        characterElement.className = `combat-character-3d ${teamType}-character-3d ${characterStyle.class}`;
+        characterElement.className = `combat-character-3d ${teamType}-character-3d ${characterStyle.class} ${battleRole}-role`;
         characterElement.id = characterId;
         characterElement.style.cssText = `
             position: absolute;
@@ -130,6 +133,37 @@ class Combat3DSystem {
         };
         
         return styles[role] || styles.tank;
+    }
+    
+    convertClassToBattleRole(characterClass) {
+        // Conversion des classes en rôles Tank/DPS/Support
+        const roleMapping = {
+            // TANK
+            'tank': 'tank',
+            'warrior': 'tank', 
+            'paladin': 'tank',
+            'guard': 'tank',
+            'knight': 'tank',
+            
+            // SUPPORT  
+            'support': 'support',
+            'healer': 'support',
+            'mage': 'support',
+            'priest': 'support',
+            'cleric': 'support',
+            'wizard': 'support',
+            
+            // DPS
+            'dps': 'dps',
+            'assassin': 'dps',
+            'archer': 'dps', 
+            'elf': 'dps',
+            'fighter': 'dps',
+            'rogue': 'dps'
+        };
+        
+        const normalizedClass = (characterClass || '').toLowerCase();
+        return roleMapping[normalizedClass] || 'dps'; // Défaut DPS
     }
     
     positionCharacter(characterElement, position, teamType) {

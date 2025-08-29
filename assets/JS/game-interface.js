@@ -533,13 +533,25 @@ class GameInterface {
             modal.className = 'battlefield-modal show';
             modal.innerHTML = `
                 <div class="battlefield-container">
-                    <div class="battlefield-header">
-                        <h2>⚔️ Combat Épique en Cours ⚔️</h2>
-                        <button class="close-battlefield">×</button>
+                    <!-- Guide de Guilde à gauche -->
+                    <div class="battlefield-guild-guide">
+                        <div class="guild-guide-avatar">
+                            <img src="/images/guild1.png" alt="Guide de Guilde" class="guide-avatar" id="guild-avatar-combat">
+                        </div>
+                        <div class="guild-guide-bubble">
+                            <div class="bubble-arrow"></div>
+                            <p id="guide-text-combat">⚔️ Que le combat commence ! Montrez-leur de quoi vous êtes capable !</p>
+                        </div>
                     </div>
                     
-                    <div class="battlefield-content">
-                        <!-- Zone des cartes ennemies (EN HAUT) -->
+                    <!-- Contenu principal du battlefield à droite -->
+                    <div class="battlefield-main-content">
+                        <div class="battlefield-header">
+                            <h2>⚔️ Combat Épique en Cours ⚔️</h2>
+                            <button class="close-battlefield">×</button>
+                        </div>
+                        
+                        <!-- Zone des cartes ennemies (EN HAUT DU PLATEAU) -->
                         <div class="enemy-cards-zone">
                             <h3>🔴 Équipe Adverse</h3>
                             <div class="battlefield-cards enemy-cards">
@@ -547,7 +559,7 @@ class GameInterface {
                             </div>
                         </div>
                         
-                        <!-- Arène de combat centrale CLAIRE ET NETTE -->
+                        <!-- Arène de combat centrale -->
                         <div class="battlefield-arena ${plateauType}">
                             <div class="combat-zone-3d">
                                 <!-- Les personnages 3D apparaîtront ici -->
@@ -568,18 +580,7 @@ class GameInterface {
                             </div>
                         </div>
                         
-                        <!-- Guide de Guilde Kaamelott EN DEHORS du plateau -->
-                        <div class="battlefield-guild-guide">
-                            <div class="guild-guide-avatar">
-                                <img src="/images/guild1.png" alt="Guide de Guilde" class="guide-avatar" id="guild-avatar-combat">
-                            </div>
-                            <div class="guild-guide-bubble">
-                                <div class="bubble-arrow"></div>
-                                <p id="guide-text-combat">⚔️ Que le combat commence ! Montrez-leur de quoi vous êtes capable !</p>
-                            </div>
-                        </div>
-                        
-                        <!-- Zone des cartes du joueur (EN BAS) -->
+                        <!-- Zone des cartes du joueur (EN BAS DU PLATEAU) -->
                         <div class="player-cards-zone">
                             <h3>🟢 Votre Équipe</h3>
                             <div class="battlefield-cards player-cards">
@@ -649,14 +650,19 @@ class GameInterface {
             let fallbackImage = '';
             
             if (char.imagePath && char.imagePath !== 'placeholder.png') {
-                imageSrc = char.imagePath;
+                // Nettoyer le chemin d'image s'il contient des chemins complets
+                imageSrc = char.imagePath.replace(/^.*[\\\/]/, '').replace('/images/characters/', '');
             } else if (char.image && char.image !== 'placeholder.png') {
-                imageSrc = char.image;
+                // Nettoyer le chemin d'image s'il contient des chemins complets
+                imageSrc = char.image.replace(/^.*[\\\/]/, '').replace('/images/characters/', '');
             } else {
                 imageSrc = this.getCharacterImageByRole(char.role || char.class);
             }
             
             fallbackImage = this.getCharacterImageByRole(char.role || char.class);
+            
+            // Debug amélioré
+            console.log(`🖼️ [${char.name}] Image finale: ${imageSrc}, Fallback: ${fallbackImage}, Original: ${char.imagePath || char.image}`);
             
             // Sécuriser les données JSON pour éviter l'erreur de parsing
             const safeCharData = {
@@ -672,7 +678,8 @@ class GameInterface {
             <div class="battlefield-card ${teamType}-card" data-character-id="${index}" data-team="${teamType}" data-character='${JSON.stringify(safeCharData).replace(/'/g, "&apos;")}'>
                 <div class="card-body">
                     <div class="character-avatar">
-                        <img src="/images/characters/${imageSrc}" alt="${char.name}" onerror="this.src='/images/characters/${fallbackImage}'" />
+                        <img src="/images/characters/${imageSrc}" alt="${char.name}" 
+                             onerror="this.src='/images/characters/${fallbackImage}'; console.warn('🖼️ Image non trouvée: ${imageSrc}, utilisation fallback: ${fallbackImage}');" />
                     </div>
                     <div class="character-name">${char.name}</div>
                     <div class="character-role">
@@ -848,7 +855,7 @@ class GameInterface {
         this.initCombat3DSystem(matchData);
         
         // Setup des contrôles existants
-        const modal = document.getElementById('combat-visualization-modal');
+        const modal = document.querySelector('.battlefield-modal');
         const closeBtn = document.getElementById('combat-close-btn');  
         const startBtn = document.getElementById('start-combat-btn');
         const speedBtns = document.querySelectorAll('.speed-btn');
@@ -1195,15 +1202,12 @@ class GameInterface {
             "Une défaite honorable... Analysez vos erreurs pour vous améliorer !"
         );
         
-        // Auto-fermeture après 5 secondes
-        setTimeout(() => {
-            const modal = document.querySelector('.battlefield-modal');
-            if (modal) {
-                modal.remove();
-                this.resumeBackgroundVideo();
-                this.combat3D?.cleanup();
-            }
-        }, 5000);
+        // Afficher l'overlay de victoire ou défaite (SANS AUTO-FERMETURE)
+        if (isVictory) {
+            this.showBattlefieldVictory();
+        } else {
+            this.showBattlefieldDefeat();
+        }
     }
     
     setupGuildGuideForCombat() {
@@ -1417,13 +1421,7 @@ class GameInterface {
         
         const processNextEvent = () => {
             if (eventIndex >= events.length) {
-                // Déterminer victoire ou défaite aléatoirement pour la démo
-                const isVictory = Math.random() > 0.3; // 70% de chance de victoire
-                if (isVictory) {
-                    this.showBattlefieldVictory();
-                } else {
-                    this.showBattlefieldDefeat();
-                }
+                // Le combat est terminé, la fin sera gérée par finishEpicCombat()
                 return;
             }
             
@@ -1703,7 +1701,7 @@ class GameInterface {
     }
 
     showBattlefieldVictory() {
-        const modal = document.getElementById('combat-visualization-modal');
+        const modal = document.querySelector('.battlefield-modal');
         if (!modal) return;
         
         const victoryOverlay = document.createElement('div');
@@ -1712,9 +1710,14 @@ class GameInterface {
             <div class="victory-content">
                 <h2>🏆 VICTOIRE! 🏆</h2>
                 <p>Combat terminé avec succès!</p>
-                <button class="victory-btn" onclick="document.getElementById('combat-close-btn').click()">
-                    Continuer
-                </button>
+                <div class="victory-actions">
+                    <button class="victory-btn primary" onclick="this.closest('.battlefield-modal').querySelector('.close-battlefield').click()">
+                        ✅ Fermer
+                    </button>
+                    <button class="victory-btn secondary" onclick="runCompleteTest()">
+                        🔄 Nouveau test
+                    </button>
+                </div>
             </div>
         `;
         
@@ -1725,7 +1728,7 @@ class GameInterface {
     }
 
     showBattlefieldDefeat() {
-        const modal = document.getElementById('combat-visualization-modal');
+        const modal = document.querySelector('.battlefield-modal');
         if (!modal) return;
         
         const defeatOverlay = document.createElement('div');
@@ -1734,9 +1737,14 @@ class GameInterface {
             <div class="defeat-content">
                 <h2>💀 DÉFAITE 💀</h2>
                 <p>Ce n'est que partie remise !</p>
-                <button class="defeat-btn" onclick="document.getElementById('combat-close-btn').click()">
-                    Recommencer
-                </button>
+                <div class="defeat-actions">
+                    <button class="defeat-btn primary" onclick="this.closest('.battlefield-modal').querySelector('.close-battlefield').click()">
+                        ✅ Fermer
+                    </button>
+                    <button class="defeat-btn secondary" onclick="runCompleteTest()">
+                        🔄 Nouveau test
+                    </button>
+                </div>
             </div>
         `;
         
@@ -1940,7 +1948,22 @@ class GameInterface {
             'paladin': '/images/characters/paladin.png',
             'tank': '/images/characters/paladin.png',
             'assassin': '/images/characters/assassin.png',
-            'fighter': '/images/characters/warrior.png'
+            'fighter': '/images/characters/warrior.png',
+            // Mapping pour les noms spécifiques
+            'garde noir': '/images/characters/warrior.png',
+            'dark guard': '/images/characters/warrior.png',
+            'dark-guard': '/images/characters/warrior.png',
+            'assassin ombre': '/images/characters/assassin.png',
+            'shadow assassin': '/images/characters/assassin.png',
+            'shadow-assassin': '/images/characters/assassin.png',
+            'nécromant': '/images/characters/mage.png',
+            'necromancer': '/images/characters/mage.png',
+            'archer elfe': '/images/characters/archer.png',
+            'elf archer': '/images/characters/archer.png',
+            'elf-archer': '/images/characters/archer.png',
+            'mage sage': '/images/characters/mage.png',
+            'wise mage': '/images/characters/mage.png',
+            'wise-mage': '/images/characters/mage.png'
         };
         
         // Essayer plusieurs approches pour matcher l'image
@@ -1948,23 +1971,28 @@ class GameInterface {
         
         if (characterName && typeof characterName === 'string') {
             const normalizedName = characterName.toLowerCase().replace(/\s+/g, '');
+            const dashName = characterName.toLowerCase().replace(/\s+/g, '-');
             
             // Essayer par nom exact
             if (characterImages[characterName.toLowerCase()]) {
                 imagePath = characterImages[characterName.toLowerCase()];
+            }
+            // Essayer par nom avec tirets
+            else if (characterImages[dashName]) {
+                imagePath = characterImages[dashName];
             }
             // Essayer par nom sans espaces
             else if (characterImages[normalizedName]) {
                 imagePath = characterImages[normalizedName];
             }
             // Essayer de deviner par le rôle dans le nom
-            else if (normalizedName.includes('guerrier') || normalizedName.includes('warrior')) {
+            else if (normalizedName.includes('guerrier') || normalizedName.includes('warrior') || normalizedName.includes('garde')) {
                 imagePath = characterImages['warrior'];
             }
-            else if (normalizedName.includes('mage') || normalizedName.includes('wizard')) {
+            else if (normalizedName.includes('mage') || normalizedName.includes('wizard') || normalizedName.includes('necro')) {
                 imagePath = characterImages['mage'];
             }
-            else if (normalizedName.includes('archer') || normalizedName.includes('bow')) {
+            else if (normalizedName.includes('archer') || normalizedName.includes('bow') || normalizedName.includes('elfe')) {
                 imagePath = characterImages['archer'];
             }
             else if (normalizedName.includes('pretre') || normalizedName.includes('priest') || normalizedName.includes('healer')) {
@@ -1973,7 +2001,7 @@ class GameInterface {
             else if (normalizedName.includes('paladin') || normalizedName.includes('tank')) {
                 imagePath = characterImages['paladin'];
             }
-            else if (normalizedName.includes('assassin') || normalizedName.includes('rogue')) {
+            else if (normalizedName.includes('assassin') || normalizedName.includes('rogue') || normalizedName.includes('ombre')) {
                 imagePath = characterImages['assassin'];
             }
         }
@@ -2020,7 +2048,7 @@ class GameInterface {
     }
 
     initCombatVisualization(matchData) {
-        const modal = document.getElementById('combat-visualization-modal');
+        const modal = document.querySelector('.battlefield-modal');
         const closeBtn = document.getElementById('combat-close-btn');
         const startBtn = document.getElementById('start-combat-btn');
         const speedBtns = document.querySelectorAll('.speed-btn');

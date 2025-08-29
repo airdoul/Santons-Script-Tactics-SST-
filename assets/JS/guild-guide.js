@@ -230,6 +230,9 @@ class GuildGuide {
                     <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.showTeamStrategy()">
                         <i class="fas fa-chess"></i> Stratégies d'Équipe
                     </button>
+                    <button class="dialogue-btn debug" onclick="event.stopPropagation(); window.guildGuide.showDebugMenu()" style="background: #ff6b6b;">
+                        <i class="fas fa-bug"></i> Debug Outils
+                    </button>
                 `;
             }
         } catch (error) {
@@ -464,6 +467,81 @@ class GuildGuide {
                 <li>La <strong>stratégie d'équipe</strong> est importante</li>
             </ul>
             <p>Concentrez-vous sur la formation et l'équipement de votre équipe !</p>`
+        );
+    }
+
+    showDebugMenu() {
+        try {
+            const textEl = document.getElementById('dialogue-text');
+            const buttonsEl = document.getElementById('dialogue-buttons');
+
+            if (!textEl || !buttonsEl) return;
+
+            textEl.innerHTML = `<p>Outils de développement et debug :</p>`;
+
+            buttonsEl.innerHTML = `
+                <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.runPositioningTest()">
+                    <i class="fas fa-crosshairs"></i> Test Positionnement
+                </button>
+                <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.debugActiveCombat()">
+                    <i class="fas fa-sword"></i> Debug Combat Actuel
+                </button>
+                <button class="dialogue-btn" onclick="event.stopPropagation(); window.guildGuide.showSystemInfo()">
+                    <i class="fas fa-info-circle"></i> Informations Système
+                </button>
+                <button class="dialogue-btn back" onclick="event.stopPropagation(); window.guildGuide.showWelcomeMessage()">
+                    <i class="fas fa-arrow-left"></i> Retour
+                </button>
+            `;
+        } catch (error) {
+            console.warn('Erreur lors de l\'affichage du menu debug:', error);
+        }
+    }
+
+    runPositioningTest() {
+        this.showDetailedResponse(
+            "Test de Positionnement",
+            `<p><strong>Test en cours...</strong></p>
+            <p>Vérifiez la console (F12) pour les détails du test.</p>`
+        );
+        
+        // Lancer le test de positionnement
+        if (window.debugPositioning) {
+            window.debugPositioning();
+        } else {
+            console.error('❌ Fonction debugPositioning non disponible');
+        }
+    }
+
+    debugActiveCombat() {
+        this.showDetailedResponse(
+            "Debug Combat Actuel",
+            `<p><strong>Analyse du combat en cours...</strong></p>
+            <p>Vérifiez la console (F12) pour les détails.</p>`
+        );
+        
+        // Debug du combat actuel
+        if (window.debugCombatPositioning) {
+            window.debugCombatPositioning();
+        } else {
+            console.error('❌ Fonction debugCombatPositioning non disponible');
+        }
+    }
+
+    showSystemInfo() {
+        const combat3dAvailable = typeof Combat3DSystem !== 'undefined';
+        const gameInterfaceAvailable = typeof gameInterface !== 'undefined';
+        const debugAvailable = typeof window.debugPositioning !== 'undefined';
+        
+        this.showDetailedResponse(
+            "Informations Système",
+            `<p><strong>État des composants :</strong></p>
+            <ul>
+                <li>Combat3DSystem: ${combat3dAvailable ? '✅ Disponible' : '❌ Non disponible'}</li>
+                <li>Game Interface: ${gameInterfaceAvailable ? '✅ Disponible' : '❌ Non disponible'}</li>
+                <li>Debug Tools: ${debugAvailable ? '✅ Disponible' : '❌ Non disponible'}</li>
+                <li>Utilisateur: ${this.isLoggedIn ? `✅ ${this.userName}` : '❌ Non connecté'}</li>
+            </ul>`
         );
     }
 }

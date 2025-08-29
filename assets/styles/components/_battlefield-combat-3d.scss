@@ -6,10 +6,8 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 40, 0.95));
-    backdrop-filter: blur(10px);
+    background: #1a1a1a; /* Fond opaque sans transparence */
     display: flex;
-    flex-direction: column;
     justify-content: center;
     align-items: center;
     z-index: 999999;
@@ -24,13 +22,22 @@
     width: 100%;
     height: 100%;
     display: flex;
+    position: relative;
+    box-sizing: border-box;
+    gap: 20px;
+}
+
+.battlefield-main-content {
+    flex: 1;
+    display: flex;
     flex-direction: column;
     position: relative;
-    padding: 20px;
-    box-sizing: border-box;
+    height: 100%;
 }
 
 .battlefield-header {
+    height: 60px; /* Hauteur fixe pour le header */
+    flex-shrink: 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -42,6 +49,32 @@
         font-size: 24px;
         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
         margin: 0;
+    }
+}
+
+.enemy-cards-zone {
+    height: 140px; /* Agrandi de 120px à 140px */
+    flex-shrink: 0;
+    overflow: visible; /* Changé de hidden à visible */
+    
+    h3 {
+        margin: 5px 0;
+        color: white;
+        text-align: center;
+        font-size: 16px;
+    }
+}
+
+.player-cards-zone {
+    height: 140px; /* Agrandi de 120px à 140px */
+    flex-shrink: 0;
+    overflow: visible; /* Changé de hidden à visible */
+    
+    h3 {
+        margin: 5px 0;
+        color: white;  
+        text-align: center;
+        font-size: 16px;
     }
 }
 
@@ -88,8 +121,8 @@
 }
 
 .battlefield-card {
-    width: 120px;
-    height: 160px;
+    width: 110px; /* Réduit de 120px à 110px */
+    height: 140px; /* Réduit de 160px à 140px */
     background: rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
     border: 2px solid rgba(255, 255, 255, 0.3);
@@ -125,12 +158,12 @@
 }
 
 .character-avatar {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto 8px;
+    width: 50px; /* Réduit de 60px à 50px */
+    height: 50px; /* Réduit de 60px à 50px */
+    margin: 0 auto 6px; /* Réduit la marge de 8px à 6px */
     border-radius: 50%;
     overflow: hidden;
-    border: 3px solid rgba(255, 255, 255, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.5); /* Bordure plus fine */
     
     img {
         width: 100%;
@@ -158,12 +191,11 @@
 
 // =============== ARÈNE DE COMBAT PRINCIPALE ===============
 .battlefield-arena {
-    flex: 1;
-    position: relative;
     width: 80%;
-    max-width: 1000px;
-    height: 60%;
-    margin: 0 auto;
+    flex: 1; /* Prend tout l'espace disponible */
+    min-height: 400px; /* Hauteur minimale garantie */
+    margin: 0 auto; /* Centré horizontalement */
+    position: relative;
     background-size: cover !important;
     background-position: center !important;
     background-repeat: no-repeat !important;
@@ -173,28 +205,8 @@
     box-shadow: 
         0 0 50px rgba(0, 0, 0, 0.8);
     
-    // Plateau médiéval - FOND GRADIENT + TEXTURE
-    &.medieval {
-        background: 
-            url('~../../public/images/carte.jpg'),
-            linear-gradient(135deg, #8B4513 0%, #D2691E 50%, #CD853F 100%) !important;
-        background-blend-mode: overlay;
-    }
-    
-    // Plateau dystopique - FOND GRADIENT + TEXTURE
-    &.dystopian {
-        background: 
-            url('~../../public/images/dalle métal.jpg'),
-            linear-gradient(135deg, #2F4F4F 0%, #696969 50%, #A9A9A9 100%) !important;
-        background-blend-mode: multiply;
-    }
-    
-    // Plateau par défaut si pas d'image
-    &:not(.medieval):not(.dystopian) {
-        background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%) !important;
-    }
-    
-    // AUCUN OVERLAY DE FLOU - PLATEAU VISIBLE
+    // Les backgrounds seront appliqués dynamiquement via JavaScript
+    // Plus besoin des classes .medieval et .dystopian
 }
 
 .combat-zone-3d {
@@ -449,18 +461,16 @@
     }
 }
 
-// =============== GUIDE DE GUILDE EN DEHORS DU PLATEAU ===============
+// =============== GUIDE DE GUILDE À GAUCHE DU PLATEAU ===============
 
 .battlefield-guild-guide {
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
+    width: 320px; /* Agrandi de 280px à 320px */
     display: flex;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
     gap: 15px;
-    max-width: 500px;
+    z-index: 1000;
     
     .guild-guide-avatar {
         width: 80px;
@@ -488,11 +498,12 @@
         background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
         border: 3px solid #d4af37;
         border-radius: 15px;
-        padding: 15px 20px;
+        padding: 20px 25px; /* Agrandi de 15px 20px à 20px 25px */
         color: white;
         font-weight: bold;
         box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        max-width: 300px;
+        max-width: 350px; /* Agrandi de 300px à 350px */
+        min-width: 280px; /* Largeur minimale */
         opacity: 0;
         transform: translateY(20px);
         transition: all 0.3s ease;
@@ -528,8 +539,365 @@
         
         p {
             margin: 0;
-            font-size: 14px;
-            line-height: 1.4;
+            font-size: 18px; /* Agrandi de 14px à 18px */
+            line-height: 1.5;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
         }
+    }
+}
+
+// =============== PERSONNAGES 3D COMBAT ===============
+
+.combat-character-3d {
+    position: absolute;
+    width: 80px;
+    height: 120px;
+    transform-style: preserve-3d;
+    transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    z-index: 100;
+    
+    .character-3d-container {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+    }
+    
+    .character-body {
+        width: 60px;
+        height: 80px;
+        margin: 0 auto;
+        border-radius: 10px 10px 20px 20px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: all 0.3s ease;
+    }
+    
+    // Différenciation par rôle Tank/DPS/Support
+    &.tank-role .character-body {
+        background: linear-gradient(145deg, #8B4513, #A0522D);
+        border: 3px solid #654321;
+        box-shadow: 0 0 15px rgba(139, 69, 19, 0.5);
+    }
+    
+    &.dps-role .character-body {
+        background: linear-gradient(145deg, #228B22, #32CD32);
+        border: 3px solid #006400;
+        box-shadow: 0 0 15px rgba(34, 139, 34, 0.5);
+    }
+    
+    &.support-role .character-body {
+        background: linear-gradient(145deg, #4B0082, #8A2BE2);
+        border: 3px solid #2E0047;
+        box-shadow: 0 0 15px rgba(75, 0, 130, 0.5);
+    }
+    
+    // Différenciation par équipe
+    &.player-character-3d .character-body {
+        border-color: #4CAF50 !important;
+        box-shadow: 0 0 20px rgba(76, 175, 80, 0.8) !important;
+    }
+    
+    &.enemy-character-3d .character-body {
+        border-color: #F44336 !important; 
+        box-shadow: 0 0 20px rgba(244, 67, 54, 0.8) !important;
+    }
+    
+    .character-head {
+        width: 40px;
+        height: 40px;
+        background: #FDBCB4;
+        border-radius: 50%;
+        position: absolute;
+        top: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        border: 2px solid #E6A899;
+        
+        .character-face {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: 
+                radial-gradient(circle at 30% 30%, #000 2px, transparent 2px),
+                radial-gradient(circle at 70% 30%, #000 2px, transparent 2px),
+                linear-gradient(to bottom, transparent 60%, #FF69B4 70%, transparent 80%);
+        }
+        
+        &.warrior-head {
+            &::after {
+                content: '';
+                position: absolute;
+                top: -10px;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 30px;
+                height: 15px;
+                background: #C0C0C0;
+                border-radius: 15px 15px 0 0;
+                border: 2px solid #A0A0A0;
+            }
+        }
+        
+        &.elf-head {
+            &::before,
+            &::after {
+                content: '';
+                position: absolute;
+                top: 10px;
+                width: 0;
+                height: 0;
+                border-style: solid;
+                border-color: #FDBCB4 transparent transparent;
+            }
+            
+            &::before {
+                left: -8px;
+                border-width: 15px 8px 0 0;
+            }
+            
+            &::after {
+                right: -8px;
+                border-width: 15px 0 0 8px;
+            }
+        }
+        
+        &.mage-head {
+            &::after {
+                content: '🧙‍♂️';
+                position: absolute;
+                top: -15px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 20px;
+            }
+        }
+    }
+    
+    .character-weapon {
+        position: absolute;
+        right: -15px;
+        top: 20px;
+        width: 30px;
+        height: 60px;
+        
+        &.warrior-weapon {
+            background: linear-gradient(to bottom, #C0C0C0 0%, #A0A0A0 50%, #8B4513 100%);
+            border-radius: 2px;
+            border: 1px solid #696969;
+            
+            &::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 15px;
+                height: 15px;
+                background: #FFD700;
+                border-radius: 50%;
+            }
+        }
+        
+        &.elf-weapon {
+            background: linear-gradient(to bottom, #8B4513 0%, #654321 100%);
+            border-radius: 50px;
+            width: 3px;
+            height: 50px;
+            
+            &::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 50%;
+                transform: translateX(-50%) rotate(45deg);
+                width: 0;
+                height: 0;
+                border-style: solid;
+                border-width: 8px 3px 0 3px;
+                border-color: #C0C0C0 transparent transparent;
+            }
+        }
+        
+        &.mage-weapon {
+            background: linear-gradient(to bottom, #8B4513 0%, #FFD700 20%, #8B4513 100%);
+            border-radius: 2px;
+            width: 8px;
+            height: 70px;
+            
+            &::before {
+                content: '💎';
+                position: absolute;
+                top: -10px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 16px;
+            }
+        }
+    }
+    
+    // Animations
+    &.attacking {
+        animation: attack3D 0.8s ease-in-out;
+    }
+    
+    &.defending {
+        animation: defend3D 0.6s ease-in-out;
+    }
+    
+    &.hit {
+        animation: hit3D 0.4s ease-in-out;
+    }
+}
+
+// Animations 3D
+@keyframes attack3D {
+    0% { transform: translateX(0) scale(1); }
+    30% { transform: translateX(20px) scale(1.1) rotateY(15deg); }
+    70% { transform: translateX(-10px) scale(1.05) rotateY(-10deg); }
+    100% { transform: translateX(0) scale(1) rotateY(0deg); }
+}
+
+@keyframes defend3D {
+    0% { transform: scale(1); }
+    50% { transform: scale(0.9) rotateX(10deg); }
+    100% { transform: scale(1) rotateX(0deg); }
+}
+
+@keyframes hit3D {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-15px) rotateZ(-5deg); }
+    75% { transform: translateX(10px) rotateZ(5deg); }
+    100% { transform: translateX(0) rotateZ(0deg); }
+}
+
+// =============== OVERLAYS VICTOIRE/DÉFAITE ===============
+
+.battlefield-victory-overlay,
+.battlefield-defeat-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: overlayFadeIn 0.5s ease-out;
+}
+
+.battlefield-victory-overlay {
+    background: linear-gradient(135deg, rgba(76, 175, 80, 0.95), rgba(139, 195, 74, 0.95));
+}
+
+.battlefield-defeat-overlay {
+    background: linear-gradient(135deg, rgba(244, 67, 54, 0.95), rgba(233, 30, 99, 0.95));
+}
+
+.victory-content,
+.defeat-content {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 20px;
+    padding: 40px;
+    text-align: center;
+    max-width: 400px;
+    animation: contentSlideIn 0.8s ease-out 0.2s both;
+    
+    h2 {
+        font-size: 48px;
+        margin: 0 0 20px 0;
+        text-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        color: white;
+    }
+    
+    p {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0 0 30px 0;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+}
+
+.victory-actions,
+.defeat-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.victory-btn,
+.defeat-btn {
+    padding: 15px 25px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 140px;
+    
+    &.primary {
+        background: linear-gradient(135deg, #4CAF50, #45a049);
+        color: white;
+        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+    }
+    
+    &.secondary {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        
+        &:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+        }
+    }
+    
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+.defeat-btn {
+    &.primary {
+        background: linear-gradient(135deg, #f44336, #d32f2f);
+        box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
+        
+        &:hover {
+            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+        }
+    }
+}
+
+@keyframes overlayFadeIn {
+    from {
+        opacity: 0;
+        backdrop-filter: blur(0px);
+    }
+    to {
+        opacity: 1;
+        backdrop-filter: blur(10px);
+    }
+}
+
+@keyframes contentSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px) scale(0.8);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
     }
 }
