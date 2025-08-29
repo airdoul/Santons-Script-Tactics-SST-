@@ -8,19 +8,22 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
-    # Redirection vers index.php pour toutes les routes
-    RewriteCond %{REQUEST_FILENAME} !-f
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteRule ^(.*)$ index.php [QSA,L]
-
-    # Éviter les contenus dupliqués
-    RewriteCond %{THE_REQUEST} \s/+(.*)[\?\s] [NC]
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^(.*)$ /$1 [R=301,L]
-
     # Support des en-têtes d'autorisation
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Exclude build directory and public files from rewriting
+    # Serve files inside /build/ directly to avoid redirect loops
+    RewriteRule ^build/ - [L]
+
+    # If the requested filename exists, simply serve it.
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule .? - [L]
+
+    # Redirect all other requests to the front controller
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule .? /index.php [L]
 </IfModule>
 
 # En-têtes de sécurité
