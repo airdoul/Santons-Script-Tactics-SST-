@@ -21,38 +21,28 @@ fi
 echo "📦 Installation des dépendances PHP..."
 composer install --no-dev --optimize-autoloader --no-interaction
 
-# 2. Vérification des assets compilés
-echo "🎨 Vérification des assets compilés..."
-if [ ! -d "public/build" ] || [ ! "$(ls -A public/build)" ]; then
-    echo "⚠️  ATTENTION: Assets non compilés détectés!"
-    echo "   Les assets doivent être compilés en local et uploadés manuellement"
-    echo "   car Node.js n'est pas disponible sur O2Switch"
-    echo ""
-    echo "   Instructions:"
-    echo "   1. En local: npm run build"
-    echo "   2. Uploadez le contenu de public/build/ vers le serveur"
-    echo "   3. Relancez ce script"
-    echo ""
-    echo "❌ Déploiement interrompu"
-    exit 1
-else
-    echo "✅ Assets compilés trouvés"
-fi
+# 2. Installation des dépendances NPM
+echo "📦 Installation des dépendances JavaScript..."
+npm ci --production=false
 
-# 3. Nettoyage du cache Symfony
+# 3. Build des assets
+echo "🎨 Compilation des assets..."
+npm run build
+
+# 4. Nettoyage du cache Symfony
 echo "🧹 Nettoyage du cache..."
 php bin/console cache:clear --env=prod --no-interaction
 php bin/console cache:warmup --env=prod --no-interaction
 
-# 4. Optimisation de l'autoloader
+# 5. Optimisation de l'autoloader
 echo "⚡ Optimisation..."
 composer dump-autoload --optimize --no-dev
 
-# 5. Migration de la base de données
+# 6. Migration de la base de données
 echo "🗄️ Migration de la base de données..."
 php bin/console doctrine:migrations:migrate --no-interaction --env=prod
 
-# 6. Configuration des permissions pour O2Switch
+# 7. Configuration des permissions pour O2Switch
 echo "🔐 Configuration des permissions..."
 chmod -R 755 ./
 chmod -R 777 var/cache/
